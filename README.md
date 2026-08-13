@@ -41,6 +41,7 @@ npx tsx scripts/security-check.ts
 - Saved jobs (pin, search, duplicate, photo/note, WhatsApp, JSON backup)
 - Print / PDF-friendly offer
 - Price presets (shop / onsite)
+- Public **client link** (`/client`): hours × your rate + phone / email / WhatsApp / socials
 
 ## Notes
 

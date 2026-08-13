@@ -92,3 +92,4 @@ export const PRESET_IDS: PresetId[] = [
 export const SETTINGS_STORAGE_KEY = "welding-calc-v2";
 export const JOBS_STORAGE_KEY = "welding-calc-jobs-v1";
 export const PRICE_BOOKS_KEY = "welding-calc-pricebooks-v1";
+export const PUBLIC_PROFILE_KEY = "welding-calc-public-v1";

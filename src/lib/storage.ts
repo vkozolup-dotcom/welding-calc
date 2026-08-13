@@ -1,5 +1,16 @@
 import { createPipeSegment, DEFAULT_FACTORS, DEFAULT_INPUTS } from "./defaults";
-import { JOBS_STORAGE_KEY, PRICE_BOOKS_KEY, PROFILES, SETTINGS_STORAGE_KEY } from "./constants";
+import {
+  JOBS_STORAGE_KEY,
+  PRICE_BOOKS_KEY,
+  PROFILES,
+  PUBLIC_PROFILE_KEY,
+  SETTINGS_STORAGE_KEY,
+} from "./constants";
+import {
+  DEFAULT_PUBLIC_PROFILE,
+  sanitizePublicProfile,
+  type PublicClientProfile,
+} from "./clientProfile";
 import { isSafePhotoDataUrl } from "./security";
 import type {
   AppTab,
@@ -305,6 +316,28 @@ export function loadPriceBooks(): PriceBookStore {
 export function savePriceBooks(store: PriceBookStore): boolean {
   try {
     localStorage.setItem(PRICE_BOOKS_KEY, JSON.stringify(store));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function loadPublicProfile(): PublicClientProfile {
+  try {
+    const raw = localStorage.getItem(PUBLIC_PROFILE_KEY);
+    if (!raw) return { ...DEFAULT_PUBLIC_PROFILE };
+    return sanitizePublicProfile(JSON.parse(raw) as unknown);
+  } catch {
+    return { ...DEFAULT_PUBLIC_PROFILE };
+  }
+}
+
+export function savePublicProfile(profile: PublicClientProfile): boolean {
+  try {
+    localStorage.setItem(
+      PUBLIC_PROFILE_KEY,
+      JSON.stringify(sanitizePublicProfile(profile)),
+    );
     return true;
   } catch {
     return false;

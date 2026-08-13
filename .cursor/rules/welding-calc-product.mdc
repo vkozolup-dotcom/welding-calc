@@ -15,6 +15,7 @@ Stack: Next.js 16 App Router + React + TS + Tailwind + manual PWA (`public/sw.js
 - Audience: welder doing **pipes** (water / hydraulic / air) + profiles. No sheet-metal / hardware catalogs.
 - No markup/profit layer — profit is already in hour/cm rates.
 - Auth / payments / accounts: **not yet** — do not add unless explicitly asked.
+- Public client link: `/client#p=…` embeds hour rate + contacts (no backend).
 - Estimates for shop quoting — not WPS / certification docs.
 
 ## Modes

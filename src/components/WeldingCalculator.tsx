@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Flame, Save } from "lucide-react";
+import { ClientLinkForm } from "@/components/ClientLinkForm";
 import { ClientOfferPanel, QuotePanel } from "@/components/QuotePanel";
 import { DimensionForm } from "@/components/DimensionForm";
 import { FactorsForm } from "@/components/FactorsForm";
@@ -319,8 +320,17 @@ export function WeldingCalculator() {
       </header>
 
       {tab === "client" ? (
-        <div className="print-area">
-          <ClientOfferPanel inputs={inputs} result={result} />
+        <div className="space-y-4">
+          <div className="no-print">
+            <ClientLinkForm
+              locale={locale}
+              currency={currency}
+              hourPriceHint={inputs.prices.laborHourPrice}
+            />
+          </div>
+          <div className="print-area">
+            <ClientOfferPanel inputs={inputs} result={result} />
+          </div>
         </div>
       ) : tab === "jobs" ? (
         <div className="no-print">
