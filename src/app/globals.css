@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+:root {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --card: #0f172a;
+  --accent: #f59e0b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, #1e293b 0%, transparent 55%),
+    radial-gradient(ellipse 80% 50% at 100% 0%, rgba(245, 158, 11, 0.08), transparent 40%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), system-ui, sans-serif;
+  min-height: 100dvh;
+}
+
+/* Hide number input spinners for cleaner mobile UX */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Faster taps on mobile; avoid accidental double-tap zoom stealing clicks */
+button,
+[role="button"],
+a,
+select,
+label {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+    size: A4;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    min-height: auto !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-area {
+    display: block !important;
+    max-width: none !important;
+  }
+
+  .print-area,
+  .print-area * {
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .print-area .rounded-2xl,
+  .print-area .rounded-xl {
+    border: 1px solid #d1d5db !important;
+    background: #ffffff !important;
+  }
+
+  .print-content {
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  .print-content .text-2xl,
+  .print-content .text-3xl {
+    color: #111827 !important;
+    font-size: 18pt !important;
+  }
+
+  /* Keep totals readable on paper */
+  .print-area [class*="amber"] {
+    color: #111827 !important;
+    border-color: #9ca3af !important;
+    background: #f9fafb !important;
+  }
+}

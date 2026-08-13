@@ -1,0 +1,203 @@
+"use client";
+
+import { Wallet } from "lucide-react";
+import { NumberField, Segmented } from "@/components/FormFields";
+import { SectionCard } from "@/components/SectionCard";
+import { currencySymbol, t } from "@/lib/i18n";
+import type {
+  Currency,
+  JobMode,
+  LaborMode,
+  Locale,
+  PriceParams,
+} from "@/lib/types";
+
+interface PriceFormProps {
+  locale: Locale;
+  currency: Currency;
+  value: PriceParams;
+  onChange: (value: PriceParams) => void;
+}
+
+export function PriceForm({
+  locale,
+  currency,
+  value,
+  onChange,
+}: PriceFormProps) {
+  const sym = currencySymbol(currency);
+  const onsite = value.jobMode === "onsite";
+
+  return (
+    <SectionCard
+      title={t(locale, "pricesTitle")}
+      subtitle={t(locale, "pricesSubtitle")}
+      icon={<Wallet className="h-5 w-5" />}
+    >
+      <div className="space-y-3">
+        <Segmented<JobMode>
+          label={t(locale, "jobModeTitle")}
+          value={value.jobMode}
+          onChange={(jobMode) =>
+            onChange({
+              ...value,
+              jobMode,
+              laborMode: jobMode === "onsite" ? "hour" : value.laborMode,
+              // Onsite always manual hours; leaving onsite returns to auto estimate
+              useManualHours: jobMode === "onsite",
+            })
+          }
+          options={[
+            { value: "full", label: t(locale, "jobModeFull") },
+            { value: "onsite", label: t(locale, "jobModeOnsite") },
+          ]}
+        />
+        <p className="text-xs text-slate-500">
+          {t(locale, onsite ? "jobModeOnsiteDesc" : "jobModeFullDesc")}
+        </p>
+
+        {!onsite && (
+          <>
+            <NumberField
+              label={t(locale, "priceProfile")}
+              suffix={`${sym}${t(locale, "perMeter")}`}
+              value={value.profilePricePerM}
+              step={1}
+              onChange={(profilePricePerM) =>
+                onChange({ ...value, profilePricePerM })
+              }
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label={t(locale, "rodPack")}
+                suffix={sym}
+                value={value.rodPackPrice}
+                step={5}
+                onChange={(rodPackPrice) =>
+                  onChange({ ...value, rodPackPrice })
+                }
+              />
+              <NumberField
+                label={t(locale, "rodPackWeight")}
+                suffix={t(locale, "kg")}
+                value={value.rodPackKg}
+                step={1}
+                onChange={(rodPackKg) => onChange({ ...value, rodPackKg })}
+              />
+            </div>
+            <NumberField
+              label={t(locale, "gasRefill")}
+              suffix={sym}
+              value={value.gasRefillPrice}
+              step={5}
+              onChange={(gasRefillPrice) =>
+                onChange({ ...value, gasRefillPrice })
+              }
+            />
+
+            <Segmented<LaborMode>
+              label={t(locale, "laborPayMode")}
+              value={value.laborMode}
+              onChange={(laborMode) => onChange({ ...value, laborMode })}
+              options={[
+                { value: "hour", label: t(locale, "laborModeHour") },
+                { value: "per_cm", label: t(locale, "laborModeCm") },
+              ]}
+            />
+          </>
+        )}
+
+        {(onsite || value.laborMode === "hour") && (
+          <>
+            <NumberField
+              label={t(locale, "laborHour")}
+              suffix={`${sym}${t(locale, "perHour")}`}
+              value={value.laborHourPrice}
+              step={5}
+              onChange={(laborHourPrice) =>
+                onChange({ ...value, laborHourPrice })
+              }
+            />
+            <NumberField
+              label={t(locale, "manualHours")}
+              suffix="h"
+              value={value.manualHours}
+              step={0.5}
+              onChange={(manualHours) =>
+                onChange({
+                  ...value,
+                  manualHours,
+                  useManualHours: true,
+                })
+              }
+            />
+          </>
+        )}
+
+        {!onsite && value.laborMode === "per_cm" && (
+          <NumberField
+            label={t(locale, "weldPerCm")}
+            suffix={`${sym}${t(locale, "perCm")}`}
+            value={value.weldPricePerCm}
+            step={0.1}
+            onChange={(weldPricePerCm) =>
+              onChange({ ...value, weldPricePerCm })
+            }
+          />
+        )}
+
+        <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-300">
+          {value.invoiceEnabled
+            ? t(locale, "invoiceOn")
+            : t(locale, "invoiceOff")}
+          {value.invoiceEnabled
+            ? ` · ${t(locale, "vat", { pct: value.vatPercent })}`
+            : ""}
+        </div>
+
+        <Segmented<"on" | "off">
+          label={t(locale, "invoiceToggle")}
+          value={value.invoiceEnabled ? "on" : "off"}
+          onChange={(next) =>
+            onChange({ ...value, invoiceEnabled: next === "on" })
+          }
+          options={[
+            { value: "on", label: t(locale, "invoiceOnShort") },
+            { value: "off", label: t(locale, "invoiceOffShort") },
+          ]}
+        />
+
+        <Segmented<"on" | "off">
+          label={t(locale, "deliveryToggle")}
+          value={value.deliveryEnabled ? "on" : "off"}
+          onChange={(next) =>
+            onChange({ ...value, deliveryEnabled: next === "on" })
+          }
+          options={[
+            { value: "on", label: t(locale, "deliveryOn") },
+            { value: "off", label: t(locale, "deliveryOff") },
+          ]}
+        />
+        {value.deliveryEnabled && (
+          <NumberField
+            label={t(locale, "deliveryPrice")}
+            suffix={sym}
+            value={value.deliveryPrice}
+            step={10}
+            min={0}
+            onChange={(deliveryPrice) => onChange({ ...value, deliveryPrice })}
+          />
+        )}
+
+        <NumberField
+          label={`${t(locale, "eurRate")} ${sym}`}
+          suffix={t(locale, "eurRateHint")}
+          value={value.eurRate}
+          step={0.01}
+          min={0.01}
+          onChange={(eurRate) => onChange({ ...value, eurRate })}
+        />
+      </div>
+    </SectionCard>
+  );
+}
