@@ -11,6 +11,7 @@ import { PresetSelector } from "@/components/PresetSelector";
 import { PriceBooksForm } from "@/components/PriceBooksForm";
 import { PriceForm } from "@/components/PriceForm";
 import { ResultsPanel } from "@/components/ResultsPanel";
+import { SectionCard } from "@/components/SectionCard";
 import { TodayStatsBar } from "@/components/TodayStatsBar";
 import { ToolingForm } from "@/components/ToolingForm";
 import { WeldingForm } from "@/components/WeldingForm";
@@ -337,77 +338,6 @@ export function WeldingCalculator() {
             <TodayStatsBar locale={locale} jobs={todayJobs} />
           </div>
 
-          <div className="no-print rounded-2xl border border-slate-800 bg-slate-900/80 p-3">
-            {activeJobId && activeJobName ? (
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-amber-300">
-                  {t(locale, "jobEditing", { name: activeJobName })}
-                  {isDirty ? (
-                    <span className="ml-2 text-rose-300">
-                      · {t(locale, "jobUnsaved")}
-                    </span>
-                  ) : null}
-                </p>
-                <button
-                  type="button"
-                  className="text-xs text-slate-400 underline"
-                  onClick={clearEditing}
-                >
-                  {t(locale, "jobClearEdit")}
-                </button>
-              </div>
-            ) : (
-              <p className="mb-2 text-xs text-slate-500">
-                {t(locale, "jobSaveHint")}
-              </p>
-            )}
-            <input
-              type="text"
-              value={jobName}
-              onChange={(e) => setJobName(e.target.value)}
-              placeholder={t(locale, "jobNamePlaceholder")}
-              className="mb-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500"
-            />
-            <textarea
-              value={inputs.jobNote}
-              rows={2}
-              placeholder={t(locale, "jobNotePlaceholder")}
-              className="mb-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
-              onChange={(e) => patch({ jobNote: e.target.value })}
-            />
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {activeJobId ? (
-                <button
-                  type="button"
-                  onClick={() => upsertJob(false)}
-                  className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-950 ${
-                    isDirty ? "bg-rose-400" : "bg-amber-500"
-                  }`}
-                >
-                  <Save className="h-4 w-4" />
-                  {saveFlash ? t(locale, "jobSaved") : t(locale, "jobUpdate")}
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => upsertJob(true)}
-                className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold ${
-                  activeJobId
-                    ? "border border-slate-600 text-slate-100"
-                    : "bg-amber-500 text-slate-950"
-                }`}
-              >
-                <Save className="h-4 w-4" />
-                {saveFlash && !activeJobId
-                  ? t(locale, "jobSaved")
-                  : t(locale, "jobSaveAsNew")}
-              </button>
-            </div>
-            {saveError ? (
-              <p className="mt-2 text-xs font-medium text-rose-400">{saveError}</p>
-            ) : null}
-          </div>
-
           {/* Order / structure first (shop). Onsite: rates first. */}
           {onsite ? (
             <>
@@ -493,6 +423,80 @@ export function WeldingCalculator() {
               </div>
             </>
           )}
+
+          <div className="no-print">
+            <SectionCard
+              title={t(locale, "jobSave")}
+              subtitle={
+                activeJobId && activeJobName
+                  ? `${t(locale, "jobEditing", { name: activeJobName })}${
+                      isDirty ? ` · ${t(locale, "jobUnsaved")}` : ""
+                    }`
+                  : t(locale, "jobSaveHint")
+              }
+              icon={<Save className="h-5 w-5" />}
+              collapsible
+            >
+              {activeJobId ? (
+                <div className="mb-2 flex justify-end">
+                  <button
+                    type="button"
+                    className="text-xs text-slate-400 underline"
+                    onClick={clearEditing}
+                  >
+                    {t(locale, "jobClearEdit")}
+                  </button>
+                </div>
+              ) : null}
+              <input
+                type="text"
+                value={jobName}
+                onChange={(e) => setJobName(e.target.value)}
+                placeholder={t(locale, "jobNamePlaceholder")}
+                className="mb-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500"
+              />
+              <textarea
+                value={inputs.jobNote}
+                rows={2}
+                placeholder={t(locale, "jobNotePlaceholder")}
+                className="mb-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+                onChange={(e) => patch({ jobNote: e.target.value })}
+              />
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {activeJobId ? (
+                  <button
+                    type="button"
+                    onClick={() => upsertJob(false)}
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-950 ${
+                      isDirty ? "bg-rose-400" : "bg-amber-500"
+                    }`}
+                  >
+                    <Save className="h-4 w-4" />
+                    {saveFlash ? t(locale, "jobSaved") : t(locale, "jobUpdate")}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => upsertJob(true)}
+                  className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold ${
+                    activeJobId
+                      ? "border border-slate-600 text-slate-100"
+                      : "bg-amber-500 text-slate-950"
+                  }`}
+                >
+                  <Save className="h-4 w-4" />
+                  {saveFlash && !activeJobId
+                    ? t(locale, "jobSaved")
+                    : t(locale, "jobSaveAsNew")}
+                </button>
+              </div>
+              {saveError ? (
+                <p className="mt-2 text-xs font-medium text-rose-400">
+                  {saveError}
+                </p>
+              ) : null}
+            </SectionCard>
+          </div>
 
           <div className="no-print">
             <ResultsPanel
