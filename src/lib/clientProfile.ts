@@ -11,7 +11,8 @@ export interface PublicClientProfile {
   facebook: string;
   instagram: string;
   hourPrice: number;
-  profilePricePerM: number;
+  profilePricePerMMild: number;
+  profilePricePerMStainless: number;
   rodPackPrice: number;
   rodPackKg: number;
   gasRefillPrice: number;
@@ -32,10 +33,11 @@ export const DEFAULT_PUBLIC_PROFILE: PublicClientProfile = {
   facebook: "",
   instagram: "",
   hourPrice: 120,
-  profilePricePerM: 12,
+  profilePricePerMMild: 18,
+  profilePricePerMStainless: 48,
   rodPackPrice: 95,
   rodPackKg: 5,
-  gasRefillPrice: 160,
+  gasRefillPrice: 210,
   weldPricePerCm: 2,
   laborMode: "hour",
   vatPercent: 23,
@@ -71,9 +73,19 @@ export function sanitizePublicProfile(raw: unknown): PublicClientProfile {
     instagram:
       typeof raw.instagram === "string" ? raw.instagram.slice(0, 200) : "",
     hourPrice: Math.max(0, asFiniteNumber(raw.hourPrice, base.hourPrice)),
-    profilePricePerM: Math.max(
+    profilePricePerMMild: Math.max(
       0,
-      asFiniteNumber(raw.profilePricePerM, base.profilePricePerM),
+      asFiniteNumber(
+        raw.profilePricePerMMild,
+        asFiniteNumber(raw.profilePricePerM, base.profilePricePerMMild),
+      ),
+    ),
+    profilePricePerMStainless: Math.max(
+      0,
+      asFiniteNumber(
+        raw.profilePricePerMStainless,
+        base.profilePricePerMStainless,
+      ),
     ),
     rodPackPrice: Math.max(
       0,
@@ -107,7 +119,8 @@ export function profileFromPrices(
     ...DEFAULT_PUBLIC_PROFILE,
     ...contacts,
     hourPrice: prices.laborHourPrice,
-    profilePricePerM: prices.profilePricePerM,
+    profilePricePerMMild: prices.profilePricePerMMild,
+    profilePricePerMStainless: prices.profilePricePerMStainless,
     rodPackPrice: prices.rodPackPrice,
     rodPackKg: prices.rodPackKg,
     gasRefillPrice: prices.gasRefillPrice,
@@ -126,15 +139,20 @@ export function buildClientCalcInputs(
   withMaterials: boolean,
 ): CalcInputs {
   const base = structuredClone(DEFAULT_INPUTS);
+  // Keep laborMode (hour / per_cm) in both modes. "Without materials" zeros
+  // purchase rates instead of switching to onsite (onsite always bills by hour).
   const prices: PriceParams = {
     ...base.prices,
-    jobMode: withMaterials ? "full" : "onsite",
-    laborMode: withMaterials ? profile.laborMode : "hour",
+    jobMode: "full",
+    laborMode: profile.laborMode,
     laborHourPrice: profile.hourPrice,
-    profilePricePerM: profile.profilePricePerM,
-    rodPackPrice: profile.rodPackPrice,
+    profilePricePerMMild: withMaterials ? profile.profilePricePerMMild : 0,
+    profilePricePerMStainless: withMaterials
+      ? profile.profilePricePerMStainless
+      : 0,
+    rodPackPrice: withMaterials ? profile.rodPackPrice : 0,
     rodPackKg: profile.rodPackKg,
-    gasRefillPrice: profile.gasRefillPrice,
+    gasRefillPrice: withMaterials ? profile.gasRefillPrice : 0,
     weldPricePerCm: profile.weldPricePerCm,
     useManualHours: false,
     manualHours: 0,

@@ -60,12 +60,21 @@ export function PriceForm({
         {!onsite && (
           <>
             <NumberField
-              label={t(locale, "priceProfile")}
+              label={t(locale, "priceProfileMild")}
               suffix={`${sym}${t(locale, "perMeter")}`}
-              value={value.profilePricePerM}
+              value={value.profilePricePerMMild}
               step={1}
-              onChange={(profilePricePerM) =>
-                onChange({ ...value, profilePricePerM })
+              onChange={(profilePricePerMMild) =>
+                onChange({ ...value, profilePricePerMMild })
+              }
+            />
+            <NumberField
+              label={t(locale, "priceProfileStainless")}
+              suffix={`${sym}${t(locale, "perMeter")}`}
+              value={value.profilePricePerMStainless}
+              step={1}
+              onChange={(profilePricePerMStainless) =>
+                onChange({ ...value, profilePricePerMStainless })
               }
             />
             <div className="grid grid-cols-2 gap-3">
@@ -118,15 +127,6 @@ export function PriceForm({
 
         {(onsite || value.laborMode === "hour") && (
           <>
-            <NumberField
-              label={t(locale, "laborHour")}
-              suffix={`${sym}${t(locale, "perHour")}`}
-              value={value.laborHourPrice}
-              step={5}
-              onChange={(laborHourPrice) =>
-                onChange({ ...value, laborHourPrice })
-              }
-            />
             {!onsite ? (
               <Segmented<"auto" | "manual">
                 label={t(locale, "hoursSource")}
@@ -158,17 +158,7 @@ export function PriceForm({
           </>
         )}
 
-        {!onsite && value.laborMode === "per_cm" && (
-          <NumberField
-            label={t(locale, "weldPerCm")}
-            suffix={`${sym}${t(locale, "perCm")}`}
-            value={value.weldPricePerCm}
-            step={0.1}
-            onChange={(weldPricePerCm) =>
-              onChange({ ...value, weldPricePerCm })
-            }
-          />
-        )}
+        {/* Hour / per-cm rates live in Presety cen (gear) */}
 
         <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-300">
           {value.invoiceEnabled

@@ -112,7 +112,10 @@ export interface ToolingParams {
 
 export interface PriceParams {
   jobMode: JobMode;
-  profilePricePerM: number;
+  /** PLN/USD per metre — black / mild steel */
+  profilePricePerMMild: number;
+  /** PLN/USD per metre — stainless */
+  profilePricePerMStainless: number;
   rodPackPrice: number;
   rodPackKg: number;
   gasRefillPrice: number;

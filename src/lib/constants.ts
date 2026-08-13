@@ -20,15 +20,16 @@ export const PROFILES: ProfileOption[] = [
   { id: "80x80x3", label: "80×80×3", kgPerMeter: 7.07, kind: "box" },
   { id: "100x100x3", label: "100×100×3", kgPerMeter: 9.03, kind: "box" },
   // Round pipe / tube
+  // Pipe kg/m: π(D − t)tρ/10⁶, ρ = 7850 (mild steel)
   { id: "pipe-21.3x2", label: "Ø21.3×2", kgPerMeter: 0.95, kind: "pipe", odMm: 21.3 },
   { id: "pipe-26.9x2", label: "Ø26.9×2", kgPerMeter: 1.23, kind: "pipe", odMm: 26.9 },
-  { id: "pipe-33.7x2.5", label: "Ø33.7×2.5", kgPerMeter: 1.78, kind: "pipe", odMm: 33.7 },
-  { id: "pipe-42.4x2.5", label: "Ø42.4×2.5", kgPerMeter: 2.41, kind: "pipe", odMm: 42.4 },
-  { id: "pipe-48.3x3", label: "Ø48.3×3", kgPerMeter: 3.29, kind: "pipe", odMm: 48.3 },
-  { id: "pipe-60.3x3", label: "Ø60.3×3", kgPerMeter: 4.29, kind: "pipe", odMm: 60.3 },
-  { id: "pipe-76.1x3", label: "Ø76.1×3", kgPerMeter: 5.48, kind: "pipe", odMm: 76.1 },
-  { id: "pipe-88.9x3.2", label: "Ø88.9×3.2", kgPerMeter: 6.81, kind: "pipe", odMm: 88.9 },
-  { id: "pipe-114.3x3.6", label: "Ø114.3×3.6", kgPerMeter: 9.37, kind: "pipe", odMm: 114.3 },
+  { id: "pipe-33.7x2.5", label: "Ø33.7×2.5", kgPerMeter: 1.92, kind: "pipe", odMm: 33.7 },
+  { id: "pipe-42.4x2.5", label: "Ø42.4×2.5", kgPerMeter: 2.46, kind: "pipe", odMm: 42.4 },
+  { id: "pipe-48.3x3", label: "Ø48.3×3", kgPerMeter: 3.35, kind: "pipe", odMm: 48.3 },
+  { id: "pipe-60.3x3", label: "Ø60.3×3", kgPerMeter: 4.24, kind: "pipe", odMm: 60.3 },
+  { id: "pipe-76.1x3", label: "Ø76.1×3", kgPerMeter: 5.41, kind: "pipe", odMm: 76.1 },
+  { id: "pipe-88.9x3.2", label: "Ø88.9×3.2", kgPerMeter: 6.76, kind: "pipe", odMm: 88.9 },
+  { id: "pipe-114.3x3.6", label: "Ø114.3×3.6", kgPerMeter: 9.83, kind: "pipe", odMm: 114.3 },
 ];
 
 /** Default cut waste fraction */

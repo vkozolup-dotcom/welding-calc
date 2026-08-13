@@ -148,22 +148,70 @@ export function ClientPublicPage() {
             {t(locale, "quoteWeldLineShort")}
           </span>
           <span className="font-semibold text-slate-100">
-            {formatNum(m.weldLengthM, locale)} {t(locale, "meters")}
+            {formatNum(m.weldLengthM, locale)} {t(locale, "meters")} (
+            {formatNum(m.weldLengthCm, locale, 0)} {t(locale, "cm")})
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-400">{t(locale, "hoursWithPrep")}</span>
+          <span className="text-slate-400">{t(locale, "laborPayMode")}</span>
           <span className="font-semibold text-slate-100">
-            {formatNum(m.laborHoursBilled, locale, 1)} h
+            {profile.laborMode === "per_cm"
+              ? `${formatMoney(profile.weldPricePerCm, locale, currency)}${t(locale, "perCm")}`
+              : `${formatMoney(profile.hourPrice, locale, currency)}${t(locale, "perHour")}`}
           </span>
         </div>
+        {profile.laborMode === "hour" ? (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">{t(locale, "hoursWithPrep")}</span>
+            <span className="font-semibold text-slate-100">
+              {formatNum(m.laborHoursBilled, locale, 1)} h
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">{t(locale, "weldSeam", { cm: formatNum(m.weldLengthCm, locale, 0) })}</span>
+            <span className="font-semibold text-slate-100">
+              {formatMoney(c.weldSeamCost, locale, currency)}
+            </span>
+          </div>
+        )}
         {withMaterials ? (
+          <>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">
+                {t(locale, "quoteWeightLineShort")}
+              </span>
+              <span className="font-semibold text-slate-100">
+                {formatNum(m.weightKg, locale)} {t(locale, "kg")}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">{t(locale, "metal")}</span>
+              <span className="font-semibold text-slate-100">
+                {formatMoney(c.metalCost, locale, currency)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">{t(locale, "filler")}</span>
+              <span className="font-semibold text-slate-100">
+                {formatMoney(c.fillerCost, locale, currency)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">{t(locale, "gas")}</span>
+              <span className="font-semibold text-slate-100">
+                {formatMoney(c.gasCost, locale, currency)}
+              </span>
+            </div>
+          </>
+        ) : null}
+        {profile.laborMode === "hour" ? (
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate-400">
-              {t(locale, "quoteWeightLineShort")}
+              {t(locale, "labor", { hrs: formatNum(m.laborHoursBilled, locale) })}
             </span>
             <span className="font-semibold text-slate-100">
-              {formatNum(m.weightKg, locale)} {t(locale, "kg")}
+              {formatMoney(c.laborCost, locale, currency)}
             </span>
           </div>
         ) : null}
@@ -180,7 +228,9 @@ export function ClientPublicPage() {
           </div>
           {profile.invoiceEnabled ? (
             <div className="mt-1 text-xs text-amber-200/80">
-              {t(locale, "vat", { pct: formatNum(profile.vatPercent, locale, 0) })}
+              {t(locale, "vat", {
+                pct: formatNum(profile.vatPercent, locale, 0),
+              })}
               {": "}
               {formatMoney(c.vatAmount, locale, currency)}
             </div>

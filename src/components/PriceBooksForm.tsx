@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bookmark } from "lucide-react";
+import { useEffect, useId, useState } from "react";
+import { Bookmark, Cog, X } from "lucide-react";
+import { NumberField } from "@/components/FormFields";
 import { SectionCard } from "@/components/SectionCard";
-import { t } from "@/lib/i18n";
+import { DEFAULT_INPUTS } from "@/lib/defaults";
+import { currencySymbol, t } from "@/lib/i18n";
 import { loadPriceBooks, sanitizePrices, savePriceBooks } from "@/lib/storage";
 import type {
+  Currency,
   Locale,
   PriceBookId,
   PriceBookStore,
@@ -14,12 +17,14 @@ import type {
 
 interface PriceBooksFormProps {
   locale: Locale;
+  currency: Currency;
   value: PriceParams;
   onApply: (prices: PriceParams) => void;
 }
 
 export function PriceBooksForm({
   locale,
+  currency,
   value,
   onApply,
 }: PriceBooksFormProps) {
@@ -27,84 +32,206 @@ export function PriceBooksForm({
     shop: null,
     onsite: null,
   });
-  const [flash, setFlash] = useState<PriceBookId | null>(null);
+  const [editId, setEditId] = useState<PriceBookId | null>(null);
+  const [draftHour, setDraftHour] = useState(0);
+  const [draftCm, setDraftCm] = useState(0);
+  const titleId = useId();
+  const sym = currencySymbol(currency);
 
   useEffect(() => {
     setBooks(loadPriceBooks());
   }, []);
 
-  function saveBook(id: PriceBookId) {
-    const snapshot: PriceParams = sanitizePrices({
+  function bookBase(id: PriceBookId): PriceParams {
+    const saved = books[id];
+    if (saved) return sanitizePrices(structuredClone(saved));
+    return sanitizePrices({
+      ...structuredClone(DEFAULT_INPUTS.prices),
       ...structuredClone(value),
       jobMode: id === "onsite" ? "onsite" : "full",
       laborMode: id === "onsite" ? "hour" : value.laborMode,
-      useManualHours: id === "onsite" ? true : value.useManualHours,
+      useManualHours: id === "onsite",
     });
-    const next = { ...books, [id]: snapshot };
+  }
+
+  function openEdit(id: PriceBookId) {
+    const base = bookBase(id);
+    setDraftHour(base.laborHourPrice);
+    setDraftCm(base.weldPricePerCm);
+    setEditId(id);
+  }
+
+  function saveRates() {
+    if (!editId) return;
+    const snapshot = sanitizePrices({
+      ...bookBase(editId),
+      laborHourPrice: draftHour,
+      weldPricePerCm: draftCm,
+      jobMode: editId === "onsite" ? "onsite" : "full",
+      laborMode: editId === "onsite" ? "hour" : value.laborMode,
+      useManualHours: editId === "onsite" ? true : value.useManualHours,
+    });
+    const next = { ...books, [editId]: snapshot };
     setBooks(next);
     savePriceBooks(next);
-    setFlash(id);
-    setTimeout(() => setFlash(null), 1200);
+
+    const activeMatches =
+      (editId === "onsite" && value.jobMode === "onsite") ||
+      (editId === "shop" && value.jobMode !== "onsite");
+    if (activeMatches) {
+      onApply({
+        ...value,
+        laborHourPrice: draftHour,
+        weldPricePerCm: draftCm,
+      });
+    }
+    setEditId(null);
   }
 
   function applyBook(id: PriceBookId) {
-    const saved = books[id];
-    if (!saved) return;
-    const prices: PriceParams = {
-      ...sanitizePrices(structuredClone(saved)),
+    const prices = sanitizePrices({
+      ...bookBase(id),
       jobMode: id === "onsite" ? "onsite" : "full",
-      laborMode: id === "onsite" ? "hour" : saved.laborMode,
-      useManualHours: id === "onsite" ? true : saved.useManualHours === true,
-    };
+      laborMode: id === "onsite" ? "hour" : bookBase(id).laborMode,
+      useManualHours: id === "onsite" ? true : bookBase(id).useManualHours,
+    });
+    if (!books[id]) {
+      const next = { ...books, [id]: prices };
+      setBooks(next);
+      savePriceBooks(next);
+    }
     onApply(prices);
   }
 
+  const activeId: PriceBookId =
+    value.jobMode === "onsite" ? "onsite" : "shop";
+
   return (
-    <SectionCard
-      title={t(locale, "priceBooksTitle")}
-      subtitle={t(locale, "priceBooksSubtitle")}
-      icon={<Bookmark className="h-5 w-5" />}
-      collapsible
-    >
-      <div className="grid grid-cols-2 gap-3">
-        {(["shop", "onsite"] as const).map((id) => {
-          const saved = books[id];
-          return (
-            <div
-              key={id}
-              className="rounded-xl border border-slate-800 bg-slate-950/70 p-3"
-            >
-              <div className="mb-2 text-sm font-semibold text-slate-100">
-                {t(locale, id === "shop" ? "priceBookShop" : "priceBookOnsite")}
+    <>
+      <SectionCard
+        title={t(locale, "priceBooksTitle")}
+        subtitle={t(locale, "priceBooksSubtitle")}
+        icon={<Bookmark className="h-5 w-5" />}
+        collapsible
+        defaultOpen
+      >
+        <div className="grid grid-cols-2 gap-3">
+          {(["shop", "onsite"] as const).map((id) => {
+            const saved = books[id];
+            const active = activeId === id;
+            const hour = saved?.laborHourPrice ?? value.laborHourPrice;
+            const cm = saved?.weldPricePerCm ?? value.weldPricePerCm;
+            const ratesLabel = saved
+              ? id === "onsite"
+                ? `${hour} ${sym}/h`
+                : `${hour} ${sym}/h · ${cm} ${sym}${t(locale, "perCm")}`
+              : t(locale, "priceBookEmpty");
+            return (
+              <div
+                key={id}
+                className={`rounded-xl border p-2.5 ${
+                  active
+                    ? "border-amber-500/60 bg-amber-500/10"
+                    : "border-slate-800 bg-slate-950/70"
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyBook(id)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <div className="truncate text-sm font-semibold text-slate-100">
+                      {t(
+                        locale,
+                        id === "shop" ? "priceBookShop" : "priceBookOnsite",
+                      )}
+                    </div>
+                    <p className="mt-0.5 break-words text-xs leading-snug text-slate-400">
+                      {ratesLabel}
+                    </p>
+                    <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-amber-400/90">
+                      {active
+                        ? t(locale, "priceBookActive")
+                        : t(locale, "priceBookApply")}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t(locale, "priceBookEditRates")}
+                    onClick={() => openEdit(id)}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-slate-200"
+                  >
+                    <Cog className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <p className="mb-3 text-xs text-slate-500">
-                {saved
-                  ? `${saved.laborHourPrice} / ${saved.weldPricePerCm}`
-                  : t(locale, "priceBookEmpty")}
-              </p>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  disabled={!saved}
-                  onClick={() => applyBook(id)}
-                  className="rounded-lg bg-amber-500 px-2 py-2 text-xs font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {t(locale, "priceBookApply")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => saveBook(id)}
-                  className="rounded-lg border border-slate-700 px-2 py-2 text-xs font-semibold text-slate-200"
-                >
-                  {flash === id
-                    ? t(locale, "priceBookSaved")
-                    : t(locale, "priceBookSave")}
-                </button>
-              </div>
+            );
+          })}
+        </div>
+      </SectionCard>
+
+      {editId ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 sm:items-center"
+          onClick={() => setEditId(null)}
+          role="presentation"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-950 p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2
+                id={titleId}
+                className="text-sm font-semibold text-slate-100"
+              >
+                {t(
+                  locale,
+                  editId === "shop" ? "priceBookShop" : "priceBookOnsite",
+                )}{" "}
+                — {t(locale, "priceBookEditRates")}
+              </h2>
+              <button
+                type="button"
+                className="rounded-full border border-slate-700 p-1.5 text-slate-400"
+                aria-label={t(locale, "presetPickerClose")}
+                onClick={() => setEditId(null)}
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          );
-        })}
-      </div>
-    </SectionCard>
+            <div className="space-y-3">
+              <NumberField
+                label={t(locale, "laborHour")}
+                suffix={`${sym}${t(locale, "perHour")}`}
+                value={draftHour}
+                step={5}
+                onChange={setDraftHour}
+              />
+              {editId === "shop" ? (
+                <NumberField
+                  label={t(locale, "weldPerCm")}
+                  suffix={`${sym}${t(locale, "perCm")}`}
+                  value={draftCm}
+                  step={0.1}
+                  onChange={setDraftCm}
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={saveRates}
+                className="w-full rounded-xl bg-amber-500 px-3 py-2.5 text-sm font-semibold text-slate-950"
+              >
+                {t(locale, "priceBookRatesSave")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

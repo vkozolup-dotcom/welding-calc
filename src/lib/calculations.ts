@@ -287,9 +287,13 @@ export function calcCosts(
   const { prices, tooling } = inputs;
   const onsite = prices.jobMode === "onsite";
 
+  const metalRate =
+    inputs.metalType === "stainless"
+      ? prices.profilePricePerMStainless
+      : prices.profilePricePerMMild;
   const metalCost = onsite
     ? 0
-    : materials.profileLengthWithWasteM * prices.profilePricePerM;
+    : materials.profileLengthWithWasteM * metalRate;
   const fillerUnit =
     prices.rodPackKg > 0 ? prices.rodPackPrice / prices.rodPackKg : 0;
   const fillerCost = onsite ? 0 : materials.fillerKg * fillerUnit;

@@ -74,13 +74,16 @@ const en = {
     "Purge uses more gas and slower speed; fillet uses less filler",
 
   priceBooksTitle: "Price presets",
-  priceBooksSubtitle: "One-tap shop / onsite rates",
+  priceBooksSubtitle: "Shop / onsite — tap to use, gear for rates",
   priceBookShop: "My shop",
   priceBookOnsite: "Onsite",
-  priceBookApply: "Apply",
+  priceBookApply: "Tap to use",
   priceBookSave: "Save here",
-  priceBookEmpty: "Not saved yet",
+  priceBookEmpty: "Not set — open gear",
   priceBookSaved: "Preset saved",
+  priceBookEditRates: "Hour & cm rates",
+  priceBookRatesSave: "Save rates",
+  priceBookActive: "Active",
 
   jobUpdate: "Update saved",
   jobSaveAsNew: "Save as new",
@@ -164,6 +167,8 @@ const en = {
   pricesTitle: "Prices",
   pricesSubtitle: "Purchase prices for the quote",
   priceProfile: "Profile / pipe",
+  priceProfileMild: "Black steel / m",
+  priceProfileStainless: "Stainless / m",
   perMeter: "/m",
   perCm: "/cm",
   rodPack: "Rod pack",
@@ -261,7 +266,8 @@ const en = {
   clientLinkOpen: "Open client page",
   clientLinkCopied: "Link copied",
   clientLinkHint:
-    "Link embeds your rates and contacts. Client enters sizes; can switch materials on/off.",
+    "Link uses rates from Prices (incl. per-cm weld). Client enters sizes; can switch materials on/off.",
+  clientLinkRatesFromPrices: "Rates from Prices (live)",
 
   clientPageTitle: "Work cost estimate",
   clientPageSubtitle: "Enter dimensions — rough guide, final price after visit",
@@ -403,13 +409,16 @@ const pl: Record<TranslationKey, string> = {
     "Podmuch = więcej gazu i wolniej; pachwinowa = mniej pręta",
 
   priceBooksTitle: "Presety cen",
-  priceBooksSubtitle: "Warsztat / wyjazd jednym tapnięciem",
+  priceBooksSubtitle: "Warsztat / wyjazd — tapnij, ⚙ stawki",
   priceBookShop: "Mój warsztat",
   priceBookOnsite: "Wyjazd",
   priceBookApply: "Użyj",
   priceBookSave: "Zapisz tu",
-  priceBookEmpty: "Jeszcze nie zapisano",
+  priceBookEmpty: "Brak — otwórz ⚙",
   priceBookSaved: "Preset zapisany",
+  priceBookEditRates: "Stawka za godzinę i cm",
+  priceBookRatesSave: "Zapisz stawki",
+  priceBookActive: "Aktywny",
 
   jobUpdate: "Zapisz zmiany",
   jobSaveAsNew: "Zapisz jako nowe",
@@ -494,6 +503,8 @@ const pl: Record<TranslationKey, string> = {
   pricesTitle: "Ceny",
   pricesSubtitle: "Ceny zakupu do kosztorysu",
   priceProfile: "Profil / rura",
+  priceProfileMild: "Stal czarna / m",
+  priceProfileStainless: "Nierdzewka / m",
   perMeter: "/m",
   perCm: "/cm",
   rodPack: "Opakowanie pręta",
@@ -591,7 +602,8 @@ const pl: Record<TranslationKey, string> = {
   clientLinkOpen: "Otwórz stronę klienta",
   clientLinkCopied: "Skopiowano link",
   clientLinkHint:
-    "Link zawiera stawki i kontakty. Klient wpisuje wymiary; może włączyć/wyłączyć materiały.",
+    "Link bierze stawki z Ceny (także za cm spawu). Klient wpisuje wymiary; może włączyć/wyłączyć materiały.",
+  clientLinkRatesFromPrices: "Stawki z bloku Ceny (na żywo)",
 
   clientPageTitle: "Orientacyjny koszt pracy",
   clientPageSubtitle:

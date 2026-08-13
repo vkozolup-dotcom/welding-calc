@@ -44,9 +44,18 @@ function asFiniteNumber(v: unknown, fallback: number): number {
 export function sanitizePrices(raw: Record<string, unknown> | PriceParams): PriceParams {
   const p = raw as Record<string, unknown>;
   const base = DEFAULT_INPUTS.prices;
+  // Legacy single profilePricePerM → mild; stainless falls back to new default
+  const legacyM = asFiniteNumber(p.profilePricePerM, base.profilePricePerMMild);
   return {
     jobMode: p.jobMode === "onsite" ? "onsite" : "full",
-    profilePricePerM: Math.max(0, asFiniteNumber(p.profilePricePerM, base.profilePricePerM)),
+    profilePricePerMMild: Math.max(
+      0,
+      asFiniteNumber(p.profilePricePerMMild, legacyM),
+    ),
+    profilePricePerMStainless: Math.max(
+      0,
+      asFiniteNumber(p.profilePricePerMStainless, base.profilePricePerMStainless),
+    ),
     rodPackPrice: Math.max(0, asFiniteNumber(p.rodPackPrice, base.rodPackPrice)),
     rodPackKg: Math.max(0, asFiniteNumber(p.rodPackKg, base.rodPackKg)),
     gasRefillPrice: Math.max(0, asFiniteNumber(p.gasRefillPrice, base.gasRefillPrice)),

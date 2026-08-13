@@ -344,20 +344,18 @@ export function WeldingCalculator() {
         </div>
       ) : (
         <>
+          {/* Rates first, then job structure (or onsite hours UI) */}
           <div className="no-print">
-            <TodayStatsBar locale={locale} jobs={todayJobs} />
+            <PriceBooksForm
+              locale={locale}
+              currency={currency}
+              value={inputs.prices}
+              onApply={(prices) => patch({ prices })}
+            />
           </div>
 
-          {/* Order / structure first (shop). Onsite: rates first. */}
           {onsite ? (
             <>
-              <div className="no-print">
-                <PriceBooksForm
-                  locale={locale}
-                  value={inputs.prices}
-                  onApply={(prices) => patch({ prices })}
-                />
-              </div>
               <div className="no-print">
                 <PriceForm
                   locale={locale}
@@ -416,19 +414,42 @@ export function WeldingCalculator() {
               </div>
 
               <div className="no-print">
-                <PriceBooksForm
-                  locale={locale}
-                  value={inputs.prices}
-                  onApply={(prices) => patch({ prices })}
-                />
-              </div>
-
-              <div className="no-print">
                 <ToolingForm
                   locale={locale}
                   currency={currency}
                   value={inputs.tooling}
                   onChange={(tooling) => patch({ tooling })}
+                />
+              </div>
+            </>
+          )}
+
+          <div className="no-print">
+            <ResultsPanel
+              locale={locale}
+              result={result}
+              welding={inputs.welding}
+              jobMode={inputs.prices.jobMode}
+              laborMode={inputs.prices.laborMode}
+              factors={inputs.factors}
+            />
+          </div>
+
+          {!onsite && (
+            <>
+              <div className="no-print">
+                <PriceForm
+                  locale={locale}
+                  currency={currency}
+                  value={inputs.prices}
+                  onChange={(prices) => patch({ prices })}
+                />
+              </div>
+              <div className="no-print">
+                <FactorsForm
+                  locale={locale}
+                  value={inputs.factors}
+                  onChange={(factors) => patch({ factors })}
                 />
               </div>
             </>
@@ -508,39 +529,12 @@ export function WeldingCalculator() {
             </SectionCard>
           </div>
 
-          <div className="no-print">
-            <ResultsPanel
-              locale={locale}
-              result={result}
-              welding={inputs.welding}
-              jobMode={inputs.prices.jobMode}
-              laborMode={inputs.prices.laborMode}
-              factors={inputs.factors}
-            />
-          </div>
-
-          {!onsite && (
-            <>
-              <div className="no-print">
-                <PriceForm
-                  locale={locale}
-                  currency={currency}
-                  value={inputs.prices}
-                  onChange={(prices) => patch({ prices })}
-                />
-              </div>
-              <div className="no-print">
-                <FactorsForm
-                  locale={locale}
-                  value={inputs.factors}
-                  onChange={(factors) => patch({ factors })}
-                />
-              </div>
-            </>
-          )}
-
           <div className="print-area">
             <QuotePanel inputs={inputs} result={result} />
+          </div>
+
+          <div className="no-print">
+            <TodayStatsBar locale={locale} jobs={todayJobs} />
           </div>
         </>
       )}

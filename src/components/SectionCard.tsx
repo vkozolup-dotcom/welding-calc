@@ -33,7 +33,7 @@ export function SectionCard({
         </div>
       ) : null}
       <div className="min-w-0 flex-1">
-        <h2 className="text-lg font-semibold tracking-tight text-slate-50">
+        <h2 className="text-lg font-semibold leading-snug tracking-normal text-slate-50">
           {title}
         </h2>
         {subtitle ? (

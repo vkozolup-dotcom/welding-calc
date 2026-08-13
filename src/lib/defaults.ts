@@ -93,10 +93,11 @@ export const DEFAULT_INPUTS: CalcInputs = {
   },
   prices: {
     jobMode: "full",
-    profilePricePerM: 12,
+    profilePricePerMMild: 18,
+    profilePricePerMStainless: 48,
     rodPackPrice: 95,
     rodPackKg: 5,
-    gasRefillPrice: 160,
+    gasRefillPrice: 210,
     laborMode: "per_cm",
     laborHourPrice: 100,
     weldPricePerCm: 2,

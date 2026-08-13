@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, type HTMLAttributes } from "react";
-import { Check, Copy, ExternalLink, Link2, RefreshCw } from "lucide-react";
-import { NumberField, Segmented } from "@/components/FormFields";
+import { Check, Copy, ExternalLink, Link2 } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
 import {
   buildClientShareUrl,
@@ -32,15 +31,18 @@ export function ClientLinkForm({
 
   useEffect(() => {
     const saved = loadPublicProfile();
-    setProfile({
-      ...saved,
-      currency,
-      locale,
-      hourPrice:
-        saved.hourPrice > 0 ? saved.hourPrice : Math.max(0, prices.laborHourPrice),
-    });
+    setProfile(profileFromPrices(prices, saved, locale, currency));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep public rates aligned with live Prices block (contacts stay as edited)
+  useEffect(() => {
+    setProfile((prev) => {
+      const next = profileFromPrices(prices, prev, locale, currency);
+      savePublicProfile(next);
+      return next;
+    });
+  }, [prices, locale, currency]);
 
   function update(partial: Partial<PublicClientProfile>) {
     setProfile((prev) => {
@@ -50,25 +52,16 @@ export function ClientLinkForm({
     });
   }
 
-  function syncFromPrices() {
-    const next = profileFromPrices(prices, profile, locale, currency);
-    setProfile(next);
-    savePublicProfile(next);
-    setFlash(t(locale, "clientLinkSynced"));
-    setTimeout(() => setFlash(""), 1600);
-  }
-
-  function clientUrl(): string {
-    if (typeof window === "undefined") return "";
-    return buildClientShareUrl(window.location.origin, {
-      ...profile,
-      currency,
-      locale,
-    });
+  /** Always embed the latest Prices + contacts into the share URL */
+  function liveProfile(): PublicClientProfile {
+    return profileFromPrices(prices, profile, locale, currency);
   }
 
   async function copyLink() {
-    const url = clientUrl();
+    const next = liveProfile();
+    setProfile(next);
+    savePublicProfile(next);
+    const url = buildClientShareUrl(window.location.origin, next);
     const outcome = await shareOrSendText(url, t(locale, "clientLinkTitle"));
     if (outcome === "cancelled") return;
     setFlash(
@@ -80,7 +73,14 @@ export function ClientLinkForm({
   }
 
   function openLink() {
-    window.open(clientUrl(), "_blank", "noopener,noreferrer");
+    const next = liveProfile();
+    setProfile(next);
+    savePublicProfile(next);
+    window.open(
+      buildClientShareUrl(window.location.origin, next),
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
 
   const sym = currencySymbol(currency);
@@ -134,61 +134,70 @@ export function ClientLinkForm({
           placeholder="@nick"
         />
 
-        <button
-          type="button"
-          onClick={syncFromPrices}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-200"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          {t(locale, "clientLinkSyncPrices")}
-        </button>
-
-        <NumberField
-          label={t(locale, "clientLinkHourPrice")}
-          suffix={sym}
-          value={profile.hourPrice}
-          step={5}
-          onChange={(hourPrice) => update({ hourPrice })}
-        />
-        <NumberField
-          label={t(locale, "priceProfile")}
-          suffix={`${sym}${t(locale, "perMeter")}`}
-          value={profile.profilePricePerM}
-          step={1}
-          onChange={(profilePricePerM) => update({ profilePricePerM })}
-        />
-        <NumberField
-          label={t(locale, "rodPack")}
-          suffix={sym}
-          value={profile.rodPackPrice}
-          step={5}
-          onChange={(rodPackPrice) => update({ rodPackPrice })}
-        />
-        <NumberField
-          label={t(locale, "gasRefill")}
-          suffix={sym}
-          value={profile.gasRefillPrice}
-          step={10}
-          onChange={(gasRefillPrice) => update({ gasRefillPrice })}
-        />
-        <Segmented<"hour" | "per_cm">
-          label={t(locale, "laborPayMode")}
-          value={profile.laborMode}
-          onChange={(laborMode) => update({ laborMode })}
-          options={[
-            { value: "hour", label: t(locale, "laborModeHour") },
-            { value: "per_cm", label: t(locale, "laborModeCm") },
-          ]}
-        />
-        {profile.laborMode === "per_cm" ? (
-          <NumberField
-            label={t(locale, "weldPerCm")}
-            suffix={`${sym}${t(locale, "perCm")}`}
-            value={profile.weldPricePerCm}
-            step={0.1}
-            onChange={(weldPricePerCm) => update({ weldPricePerCm })}
-          />
-        ) : null}
+        <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-xs text-slate-300">
+          <div className="mb-1.5 font-semibold text-slate-200">
+            {t(locale, "clientLinkRatesFromPrices")}
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">{t(locale, "laborPayMode")}</span>
+              <span>
+                {prices.laborMode === "per_cm"
+                  ? t(locale, "laborModeCm")
+                  : t(locale, "laborModeHour")}
+              </span>
+            </div>
+            {prices.laborMode === "per_cm" ? (
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">{t(locale, "weldPerCm")}</span>
+                <span>
+                  {prices.weldPricePerCm} {sym}
+                  {t(locale, "perCm")}
+                </span>
+              </div>
+            ) : (
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">
+                  {t(locale, "clientLinkHourPrice")}
+                </span>
+                <span>
+                  {prices.laborHourPrice} {sym}
+                  {t(locale, "perHour")}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">
+                {t(locale, "priceProfileMild")}
+              </span>
+              <span>
+                {prices.profilePricePerMMild} {sym}
+                {t(locale, "perMeter")}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">
+                {t(locale, "priceProfileStainless")}
+              </span>
+              <span>
+                {prices.profilePricePerMStainless} {sym}
+                {t(locale, "perMeter")}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">{t(locale, "rodPack")}</span>
+              <span>
+                {prices.rodPackPrice} {sym}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">{t(locale, "gasRefill")}</span>
+              <span>
+                {prices.gasRefillPrice} {sym}
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <button
