@@ -249,7 +249,7 @@ const en = {
   clientOfferSubtitle: "Summary for the customer",
 
   clientLinkTitle: "Client link",
-  clientLinkSubtitle: "Public page: rough hours estimate + your contacts",
+  clientLinkSubtitle: "Public page: dimensions estimate + your contacts",
   clientLinkName: "Your name / brand",
   clientLinkPhone: "Phone",
   clientLinkEmail: "Email",
@@ -261,10 +261,10 @@ const en = {
   clientLinkOpen: "Open client page",
   clientLinkCopied: "Link copied",
   clientLinkHint:
-    "The link embeds your rate and contacts — no account needed. Estimate only.",
+    "Link embeds your rates and contacts. Client enters sizes; can switch materials on/off.",
 
   clientPageTitle: "Work cost estimate",
-  clientPageSubtitle: "Rough guide — final price after site visit",
+  clientPageSubtitle: "Enter dimensions — rough guide, final price after visit",
   clientPageHours: "Estimated hours",
   clientPageRate: "Hourly rate",
   clientPageTotal: "Estimate total",
@@ -276,6 +276,11 @@ const en = {
   clientPageWhatsApp: "WhatsApp",
   clientPageFacebook: "Facebook",
   clientPageInstagram: "Instagram",
+  clientPageMaterials: "Price includes",
+  clientPageWithMaterials: "With materials",
+  clientPageWithoutMaterials: "Labor only",
+  clientLinkSyncPrices: "Pull rates from my Prices",
+  clientLinkSynced: "Rates updated",
   clientJobOnsite: "On-site work (client materials & equipment)",
   clientJobFull: "Full job (materials + labor)",
   copyClientWhatsApp: "Share client offer",
@@ -574,7 +579,7 @@ const pl: Record<TranslationKey, string> = {
   clientOfferSubtitle: "Podsumowanie dla klienta",
 
   clientLinkTitle: "Link dla klienta",
-  clientLinkSubtitle: "Publiczna strona: orientacyjne godziny + Twoje kontakty",
+  clientLinkSubtitle: "Publiczna strona: wymiary + Twoje kontakty i stawki",
   clientLinkName: "Imię / marka",
   clientLinkPhone: "Telefon",
   clientLinkEmail: "E-mail",
@@ -586,10 +591,11 @@ const pl: Record<TranslationKey, string> = {
   clientLinkOpen: "Otwórz stronę klienta",
   clientLinkCopied: "Skopiowano link",
   clientLinkHint:
-    "Link zawiera stawkę i kontakty — bez konta. Tylko orientacja.",
+    "Link zawiera stawki i kontakty. Klient wpisuje wymiary; może włączyć/wyłączyć materiały.",
 
   clientPageTitle: "Orientacyjny koszt pracy",
-  clientPageSubtitle: "Przybliżenie — ostateczna cena po oględzinach",
+  clientPageSubtitle:
+    "Podaj wymiary — przybliżenie, ostateczna cena po oględzinach",
   clientPageHours: "Szacowane godziny",
   clientPageRate: "Stawka godzinowa",
   clientPageTotal: "Szacunkowa suma",
@@ -601,6 +607,11 @@ const pl: Record<TranslationKey, string> = {
   clientPageWhatsApp: "WhatsApp",
   clientPageFacebook: "Facebook",
   clientPageInstagram: "Instagram",
+  clientPageMaterials: "Cena obejmuje",
+  clientPageWithMaterials: "Z materiałami",
+  clientPageWithoutMaterials: "Tylko robocizna",
+  clientLinkSyncPrices: "Pobierz stawki z Ceny",
+  clientLinkSynced: "Stawki zaktualizowane",
   clientJobOnsite: "Praca u klienta (jego materiały i sprzęt)",
   clientJobFull: "Pełne zlecenie (materiały + robocizna)",
   copyClientWhatsApp: "Udostępnij ofertę klienta",

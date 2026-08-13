@@ -9,8 +9,12 @@ import {
   Phone,
   Share2,
 } from "lucide-react";
-import { NumberField } from "@/components/FormFields";
+import { DimensionForm } from "@/components/DimensionForm";
+import { Segmented } from "@/components/FormFields";
+import { PresetSelector } from "@/components/PresetSelector";
+import { calculateAll } from "@/lib/calculations";
 import {
+  buildClientCalcInputs,
   mailHref,
   readProfileFromLocation,
   socialHref,
@@ -18,17 +22,31 @@ import {
   whatsappHref,
   type PublicClientProfile,
 } from "@/lib/clientProfile";
+import { DEFAULT_INPUTS } from "@/lib/defaults";
 import { formatMoney, formatNum, t } from "@/lib/i18n";
+import type { CalcInputs, PresetId } from "@/lib/types";
 
 export function ClientPublicPage() {
   const [profile, setProfile] = useState<PublicClientProfile | null>(null);
-  const [hours, setHours] = useState(4);
   const [ready, setReady] = useState(false);
+  const [withMaterials, setWithMaterials] = useState(true);
+  const [draft, setDraft] = useState<CalcInputs>(() =>
+    structuredClone(DEFAULT_INPUTS),
+  );
 
   useEffect(() => {
-    setProfile(
-      readProfileFromLocation(window.location.hash, window.location.search),
+    const loaded = readProfileFromLocation(
+      window.location.hash,
+      window.location.search,
     );
+    setProfile(loaded);
+    if (loaded) {
+      setDraft((prev) => ({
+        ...prev,
+        locale: loaded.locale,
+        currency: loaded.currency,
+      }));
+    }
     setReady(true);
 
     const onHash = () => {
@@ -42,10 +60,16 @@ export function ClientPublicPage() {
 
   const locale = profile?.locale ?? "pl";
   const currency = profile?.currency ?? "PLN";
-  const total = useMemo(
-    () => Math.max(0, hours) * Math.max(0, profile?.hourPrice ?? 0),
-    [hours, profile?.hourPrice],
-  );
+
+  const result = useMemo(() => {
+    if (!profile) return null;
+    const inputs = buildClientCalcInputs(profile, draft, withMaterials);
+    return calculateAll(inputs);
+  }, [profile, draft, withMaterials]);
+
+  function patch(partial: Partial<CalcInputs>) {
+    setDraft((prev) => ({ ...prev, ...partial }));
+  }
 
   if (!ready) {
     return (
@@ -55,7 +79,7 @@ export function ClientPublicPage() {
     );
   }
 
-  if (!profile) {
+  if (!profile || !result) {
     return (
       <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 py-10">
         <Brand />
@@ -71,6 +95,7 @@ export function ClientPublicPage() {
   const wa = whatsappHref(profile.whatsapp || profile.phone);
   const fb = socialHref(profile.facebook);
   const ig = socialHref(profile.instagram);
+  const { materials: m, costs: c } = result;
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-10 pt-6">
@@ -89,33 +114,77 @@ export function ClientPublicPage() {
         </p>
       </div>
 
+      <Segmented<"with" | "without">
+        label={t(locale, "clientPageMaterials")}
+        value={withMaterials ? "with" : "without"}
+        onChange={(next) => setWithMaterials(next === "with")}
+        options={[
+          { value: "with", label: t(locale, "clientPageWithMaterials") },
+          { value: "without", label: t(locale, "clientPageWithoutMaterials") },
+        ]}
+      />
+
+      <PresetSelector
+        value={draft.preset}
+        locale={locale}
+        onChange={(preset: PresetId) => patch({ preset })}
+      />
+
+      <DimensionForm
+        preset={draft.preset}
+        locale={locale}
+        metalType={draft.metalType}
+        door={draft.door}
+        gate={draft.gate}
+        canopy={draft.canopy}
+        free={draft.free}
+        pipe={draft.pipe}
+        onChange={patch}
+      />
+
       <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-        <NumberField
-          label={t(locale, "clientPageHours")}
-          value={hours}
-          step={0.5}
-          min={0.5}
-          max={200}
-          suffix="h"
-          onChange={setHours}
-        />
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-400">{t(locale, "clientPageRate")}</span>
+          <span className="text-slate-400">
+            {t(locale, "quoteWeldLineShort")}
+          </span>
           <span className="font-semibold text-slate-100">
-            {formatMoney(profile.hourPrice, locale, currency)}
+            {formatNum(m.weldLengthM, locale)} {t(locale, "meters")}
           </span>
         </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-400">{t(locale, "hoursWithPrep")}</span>
+          <span className="font-semibold text-slate-100">
+            {formatNum(m.laborHoursBilled, locale, 1)} h
+          </span>
+        </div>
+        {withMaterials ? (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">
+              {t(locale, "quoteWeightLineShort")}
+            </span>
+            <span className="font-semibold text-slate-100">
+              {formatNum(m.weightKg, locale)} {t(locale, "kg")}
+            </span>
+          </div>
+        ) : null}
+
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
           <div className="text-xs font-medium uppercase tracking-wide text-amber-400/90">
             {t(locale, "clientPageTotal")}
+            {withMaterials
+              ? ` · ${t(locale, "clientPageWithMaterials")}`
+              : ` · ${t(locale, "clientPageWithoutMaterials")}`}
           </div>
           <div className="mt-1 text-2xl font-bold text-amber-300">
-            {formatMoney(total, locale, currency)}
+            {formatMoney(c.clientPrice, locale, currency)}
           </div>
-          <div className="mt-1 text-xs text-amber-200/80">
-            {formatNum(hours, locale, 1)} h ×{" "}
-            {formatMoney(profile.hourPrice, locale, currency)}
-          </div>
+          {profile.invoiceEnabled ? (
+            <div className="mt-1 text-xs text-amber-200/80">
+              {t(locale, "vat", { pct: formatNum(profile.vatPercent, locale, 0) })}
+              {": "}
+              {formatMoney(c.vatAmount, locale, currency)}
+            </div>
+          ) : null}
         </div>
       </div>
 

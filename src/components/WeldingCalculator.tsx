@@ -325,7 +325,7 @@ export function WeldingCalculator() {
             <ClientLinkForm
               locale={locale}
               currency={currency}
-              hourPriceHint={inputs.prices.laborHourPrice}
+              prices={inputs.prices}
             />
           </div>
           <div className="print-area">

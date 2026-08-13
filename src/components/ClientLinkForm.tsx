@@ -1,55 +1,61 @@
 "use client";
 
 import { useEffect, useState, type HTMLAttributes } from "react";
-import { Check, Copy, ExternalLink, Link2 } from "lucide-react";
-import { NumberField } from "@/components/FormFields";
+import { Check, Copy, ExternalLink, Link2, RefreshCw } from "lucide-react";
+import { NumberField, Segmented } from "@/components/FormFields";
 import { SectionCard } from "@/components/SectionCard";
 import {
   buildClientShareUrl,
+  profileFromPrices,
   type PublicClientProfile,
 } from "@/lib/clientProfile";
 import { currencySymbol, t } from "@/lib/i18n";
 import { loadPublicProfile, savePublicProfile } from "@/lib/storage";
-import type { Currency, Locale } from "@/lib/types";
 import { shareOrSendText } from "@/lib/share";
+import type { Currency, Locale, PriceParams } from "@/lib/types";
 
 interface ClientLinkFormProps {
   locale: Locale;
   currency: Currency;
-  hourPriceHint: number;
+  prices: PriceParams;
 }
 
 export function ClientLinkForm({
   locale,
   currency,
-  hourPriceHint,
+  prices,
 }: ClientLinkFormProps) {
-  const [profile, setProfile] = useState<PublicClientProfile>(() => ({
-    ...loadPublicProfile(),
-    currency,
-    locale,
-  }));
+  const [profile, setProfile] = useState<PublicClientProfile>(() =>
+    loadPublicProfile(),
+  );
   const [flash, setFlash] = useState("");
 
   useEffect(() => {
     const saved = loadPublicProfile();
     setProfile({
       ...saved,
-      currency: saved.currency || currency,
-      locale: saved.locale || locale,
+      currency,
+      locale,
       hourPrice:
-        saved.hourPrice > 0 ? saved.hourPrice : Math.max(0, hourPriceHint),
+        saved.hourPrice > 0 ? saved.hourPrice : Math.max(0, prices.laborHourPrice),
     });
-    // hydrate once from storage + current app currency/locale
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function update(partial: Partial<PublicClientProfile>) {
     setProfile((prev) => {
-      const next = { ...prev, ...partial, v: 1 as const };
+      const next = { ...prev, ...partial, v: 2 as const, locale, currency };
       savePublicProfile(next);
       return next;
     });
+  }
+
+  function syncFromPrices() {
+    const next = profileFromPrices(prices, profile, locale, currency);
+    setProfile(next);
+    savePublicProfile(next);
+    setFlash(t(locale, "clientLinkSynced"));
+    setTimeout(() => setFlash(""), 1600);
   }
 
   function clientUrl(): string {
@@ -74,8 +80,7 @@ export function ClientLinkForm({
   }
 
   function openLink() {
-    const url = clientUrl();
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(clientUrl(), "_blank", "noopener,noreferrer");
   }
 
   const sym = currencySymbol(currency);
@@ -128,6 +133,16 @@ export function ClientLinkForm({
           onChange={(instagram) => update({ instagram })}
           placeholder="@nick"
         />
+
+        <button
+          type="button"
+          onClick={syncFromPrices}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-200"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          {t(locale, "clientLinkSyncPrices")}
+        </button>
+
         <NumberField
           label={t(locale, "clientLinkHourPrice")}
           suffix={sym}
@@ -135,6 +150,45 @@ export function ClientLinkForm({
           step={5}
           onChange={(hourPrice) => update({ hourPrice })}
         />
+        <NumberField
+          label={t(locale, "priceProfile")}
+          suffix={`${sym}${t(locale, "perMeter")}`}
+          value={profile.profilePricePerM}
+          step={1}
+          onChange={(profilePricePerM) => update({ profilePricePerM })}
+        />
+        <NumberField
+          label={t(locale, "rodPack")}
+          suffix={sym}
+          value={profile.rodPackPrice}
+          step={5}
+          onChange={(rodPackPrice) => update({ rodPackPrice })}
+        />
+        <NumberField
+          label={t(locale, "gasRefill")}
+          suffix={sym}
+          value={profile.gasRefillPrice}
+          step={10}
+          onChange={(gasRefillPrice) => update({ gasRefillPrice })}
+        />
+        <Segmented<"hour" | "per_cm">
+          label={t(locale, "laborPayMode")}
+          value={profile.laborMode}
+          onChange={(laborMode) => update({ laborMode })}
+          options={[
+            { value: "hour", label: t(locale, "laborModeHour") },
+            { value: "per_cm", label: t(locale, "laborModeCm") },
+          ]}
+        />
+        {profile.laborMode === "per_cm" ? (
+          <NumberField
+            label={t(locale, "weldPerCm")}
+            suffix={`${sym}${t(locale, "perCm")}`}
+            value={profile.weldPricePerCm}
+            step={0.1}
+            onChange={(weldPricePerCm) => update({ weldPricePerCm })}
+          />
+        ) : null}
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <button
