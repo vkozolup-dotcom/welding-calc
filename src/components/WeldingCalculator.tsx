@@ -476,6 +476,14 @@ export function WeldingCalculator() {
               </div>
 
               <div className="no-print">
+                <PriceBooksForm
+                  locale={locale}
+                  value={inputs.prices}
+                  onApply={(prices) => patch({ prices })}
+                />
+              </div>
+
+              <div className="no-print">
                 <ToolingForm
                   locale={locale}
                   currency={currency}
@@ -499,13 +507,6 @@ export function WeldingCalculator() {
 
           {!onsite && (
             <>
-              <div className="no-print">
-                <PriceBooksForm
-                  locale={locale}
-                  value={inputs.prices}
-                  onApply={(prices) => patch({ prices })}
-                />
-              </div>
               <div className="no-print">
                 <PriceForm
                   locale={locale}
