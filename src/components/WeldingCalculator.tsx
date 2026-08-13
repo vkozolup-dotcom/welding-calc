@@ -260,32 +260,35 @@ export function WeldingCalculator() {
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-24 pt-6">
       <header className="mb-1 no-print">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-300">
-          <Flame className="h-3.5 w-3.5" />
-          {t(locale, "offlinePwa")}
-        </div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-slate-50">
-          {t(locale, "appTitle")}
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-400">
-          {t(locale, "appSubtitle")}
-        </p>
-
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <CycleChip
-            label={t(locale, "lang")}
-            value={locale === "pl" ? "PL" : "EN"}
-            onClick={() =>
-              patch({ locale: locale === "pl" ? "en" : "pl" })
-            }
-          />
-          <CycleChip
-            label={t(locale, "currency")}
-            value={currency === "PLN" ? "PLN zł" : "USD $"}
-            onClick={() =>
-              patch({ currency: currency === "PLN" ? "USD" : "PLN" })
-            }
-          />
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-300">
+              <Flame className="h-3.5 w-3.5" />
+              {t(locale, "offlinePwa")}
+            </div>
+            <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-slate-50">
+              {t(locale, "appTitle")}
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-slate-400">
+              {t(locale, "appSubtitle")}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2 pt-0.5">
+            <CycleChip
+              label={t(locale, "lang")}
+              value={locale === "pl" ? "PL" : "EN"}
+              onClick={() =>
+                patch({ locale: locale === "pl" ? "en" : "pl" })
+              }
+            />
+            <CycleChip
+              label={t(locale, "currency")}
+              value={currency === "PLN" ? "zł" : "$"}
+              onClick={() =>
+                patch({ currency: currency === "PLN" ? "USD" : "PLN" })
+              }
+            />
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -564,17 +567,15 @@ function CycleChip({
   onClick: () => void;
 }) {
   return (
-    <div>
-      <div className="mb-1.5 text-xs font-medium text-slate-400">{label}</div>
-      <button
-        type="button"
-        onClick={onClick}
-        className="w-full rounded-xl border border-amber-500/50 bg-amber-500/15 p-2.5 text-sm font-semibold text-amber-200 transition active:scale-[0.98]"
-        aria-label={`${label}: ${value}`}
-      >
-        {value}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={`${label}: ${value}`}
+      className="flex h-11 w-11 items-center justify-center rounded-full border border-amber-500/50 bg-amber-500/15 text-sm font-bold text-amber-200 shadow-sm transition active:scale-95"
+    >
+      {value}
+    </button>
   );
 }
 
