@@ -1,0 +1,37 @@
+---
+description: Code conventions for calc, storage, jobs, and i18n
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Code conventions
+
+## Layout
+
+- UI: `src/components/*` (WeldingCalculator orchestrates tabs).
+- Domain: `src/lib/calculations.ts`, `quote.ts`, `storage.ts`, `defaults.ts`, `types.ts`, `i18n.ts`.
+- Read Next.js docs under `node_modules/next/dist/docs/` before new Next APIs (this app’s Next differs from older training data).
+
+## Persistence / jobs
+
+- Always `mergeInputs` / `sanitizePrices` on load/import/apply — never trust raw JSON.
+- `saveJobs` returns `boolean` — check it; show `storageFull` on failure; do not fake success.
+- After async work (photo compress), patch from `loadJobs()`, not a stale React snapshot.
+- Meta-only patches (`note` / `photoDataUrl` / `pinned`) must **not** bump `updatedAt` (today stats).
+- Keep `job.note` and `inputs.jobNote` in sync when editing the active job.
+- i18n: add keys to **both** EN and PL in `i18n.ts`.
+
+## Math / quotes
+
+- Fillet area uses **a²/2**.
+- Unknown pipe `profileId` → coerce to a known pipe profile.
+- Onsite: zero tooling cost; omit product dimensions from quotes.
+- Prefer `asFiniteNumber` / guards so NaN does not poison `clientPrice` (UI shows "—").
+
+## Verify
+
+```bash
+npm run build
+npx tsx scripts/smoke-check.ts
+npx tsx scripts/security-check.ts
+```

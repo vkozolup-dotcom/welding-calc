@@ -1,0 +1,39 @@
+---
+description: Product constraints and domain for the TIG welding calculator PWA
+alwaysApply: true
+---
+
+# Welding Calculator — product rules
+
+Live: https://welding-calc.vercel.app  
+Stack: Next.js 16 App Router + React + TS + Tailwind + manual PWA (`public/sw.js`).
+
+## Product
+
+- Languages: **PL / EN only** (no Russian).
+- Currencies: PLN / USD (+ EUR display via rate).
+- Audience: welder doing **pipes** (water / hydraulic / air) + profiles. No sheet-metal / hardware catalogs.
+- No markup/profit layer — profit is already in hour/cm rates.
+- Auth / payments / accounts: **not yet** — do not add unless explicitly asked.
+- Estimates for shop quoting — not WPS / certification docs.
+
+## Modes
+
+- **full (shop):** materials + welding + tooling + labor.
+- **onsite:** client materials — **hours only** (no dims/welding/tooling in UI or bill; delivery/VAT still OK).
+- Prep work is a % on billed hours (default +35%, editable).
+- Invoice: VAT toggle (editable %). Delivery optional.
+
+## Data
+
+- Client-only persistence in `localStorage`:
+  - `welding-calc-v2` settings
+  - `welding-calc-jobs-v1` jobs
+  - `welding-calc-pricebooks-v1` price books
+- Jobs/settings are **plaintext** at rest. Photos: allow only safe `data:image/...` URLs.
+- After calc/storage/job changes: run `npx tsx scripts/smoke-check.ts` (and security-check when touching photos/storage).
+
+## Deploy
+
+- Production via `npx vercel --prod --yes` → https://welding-calc.vercel.app
+- Friend uses the permanent Vercel URL (no Cloudflare tunnels).
