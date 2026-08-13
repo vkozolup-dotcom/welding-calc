@@ -20,6 +20,9 @@ const en = {
   presetCanopyDesc: "Size and cross-member spacing",
   presetFree: "Free estimate",
   presetFreeDesc: "Manual welds and profile length",
+  presetPickerLabel: "Job type",
+  presetPickerTitle: "Choose job type",
+  presetPickerClose: "Close",
 
   dimsTitle: "Structure dimensions",
   dimsSubtitle: "Parameters for the selected template",
@@ -312,6 +315,9 @@ const pl: Record<TranslationKey, string> = {
   presetCanopyDesc: "Wymiary i rozstaw poprzeczek",
   presetFree: "Wolne wyliczenie",
   presetFreeDesc: "Ręczne spawy i profil",
+  presetPickerLabel: "Typ zlecenia",
+  presetPickerTitle: "Wybierz typ zlecenia",
+  presetPickerClose: "Zamknij",
 
   dimsTitle: "Wymiary konstrukcji",
   dimsSubtitle: "Parametry wybranego szablonu",
