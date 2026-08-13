@@ -10,7 +10,7 @@ interface SectionCardProps {
   children: ReactNode;
   /** When true, header toggles body visibility */
   collapsible?: boolean;
-  /** Initial open state for collapsible cards (default true) */
+  /** Initial open state for collapsible cards (default false — start collapsed) */
   defaultOpen?: boolean;
 }
 
@@ -20,7 +20,7 @@ export function SectionCard({
   icon,
   children,
   collapsible = false,
-  defaultOpen = true,
+  defaultOpen = false,
 }: SectionCardProps) {
   const [open, setOpen] = useState(defaultOpen);
   const panelId = useId();
