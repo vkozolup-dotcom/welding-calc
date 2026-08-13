@@ -1,5 +1,5 @@
 /* Network-first SW — never serve HTML for JS/CSS (breaks buttons) */
-const CACHE = "welding-calc-v6";
+const CACHE = "welding-calc-v7";
 const PRECACHE = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",
@@ -14,6 +14,12 @@ self.addEventListener("install", (event) => {
       .then((cache) => cache.addAll(PRECACHE))
       .then(() => self.skipWaiting()),
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {

@@ -5,20 +5,20 @@ import "./globals.css";
 
 const bodyFont = Exo_2({
   variable: "--font-body",
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700"],
 });
 
 const displayFont = Russo_One({
   variable: "--font-display",
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin", "latin-ext"],
   weight: "400",
 });
 
 export const metadata: Metadata = {
-  title: "Сварочный Калькулятор / Kalkulator Spawalniczy",
+  title: "Welding Calculator / Kalkulator Spawalniczy",
   description:
-    "PWA TIG: metal, pręt dodatkowy, argon, kosztorys · RU/PL · PLN/USD",
+    "PWA TIG estimator: pipes, filler rod, argon, quotes · PL/EN · PLN/USD",
   applicationName: "Welding Calc TIG",
   appleWebApp: {
     capable: true,
@@ -42,8 +42,8 @@ export const viewport: Viewport = {
   themeColor: "#020617",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   colorScheme: "dark",
 };
 

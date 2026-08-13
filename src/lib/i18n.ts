@@ -98,6 +98,19 @@ const en = {
   jobExport: "Export backup",
   jobImport: "Import",
   jobImportOk: "Imported",
+  jobDeleteConfirm: "Delete this job?",
+  jobCapWarn:
+    "Job list is full (40). Saving will drop the oldest unpinned job. Continue?",
+  jobUnsaved: "Unsaved changes",
+  photoFailed: "Photo failed — try a smaller image",
+  settingsSaveFailed: "Could not save settings (storage full)",
+  updateAvailable: "Update available",
+  updateReload: "Reload",
+  sharedOk: "Shared",
+  shareOpened: "Opening WhatsApp…",
+  stickyHours: "{hrs} h",
+  stickyTotal: "Total",
+
   jobNoSearchHits: "No matching jobs",
 
   tplTitle: "Pipe templates",
@@ -233,7 +246,7 @@ const en = {
   clientOfferSubtitle: "Summary for the customer",
   clientJobOnsite: "On-site work (client materials & equipment)",
   clientJobFull: "Full job (materials + labor)",
-  copyClientWhatsApp: "Copy client offer for WhatsApp",
+  copyClientWhatsApp: "Share client offer",
   quoteHeaderClient: "TIG welding — offer",
   printOffer: "Print / PDF",
 
@@ -251,10 +264,12 @@ const en = {
   toolingCost: "Tools total",
   costTotal: "Cost",
   clientTotal: "Client total",
-  copyWhatsApp: "Copy quote for WhatsApp",
+  copyWhatsApp: "Share / WhatsApp",
   copied: "Copied",
 
   installHint: "Add to Home Screen for offline use.",
+  installHintIos:
+    "On iPhone: Share → Add to Home Screen for offline use.",
   install: "Install",
   later: "Later",
 
@@ -375,6 +390,19 @@ const pl: Record<TranslationKey, string> = {
   jobExport: "Eksport kopii",
   jobImport: "Import",
   jobImportOk: "Zaimportowano",
+  jobDeleteConfirm: "Usunąć to zlecenie?",
+  jobCapWarn:
+    "Lista pełna (40). Zapis usunie najstarsze nieprzypięte. Kontynuować?",
+  jobUnsaved: "Niezapisane zmiany",
+  photoFailed: "Zdjęcie nieudane — spróbuj mniejszego",
+  settingsSaveFailed: "Nie zapisano ustawień (brak miejsca)",
+  updateAvailable: "Dostępna aktualizacja",
+  updateReload: "Odśwież",
+  sharedOk: "Udostępniono",
+  shareOpened: "Otwieram WhatsApp…",
+  stickyHours: "{hrs} h",
+  stickyTotal: "Razem",
+
   jobNoSearchHits: "Brak pasujących zleceń",
 
   tplTitle: "Szablony rur",
@@ -511,7 +539,7 @@ const pl: Record<TranslationKey, string> = {
   clientOfferSubtitle: "Podsumowanie dla klienta",
   clientJobOnsite: "Praca u klienta (jego materiały i sprzęt)",
   clientJobFull: "Pełne zlecenie (materiały + robocizna)",
-  copyClientWhatsApp: "Kopiuj ofertę klienta do WhatsApp",
+  copyClientWhatsApp: "Udostępnij ofertę klienta",
   quoteHeaderClient: "Spawanie TIG — oferta",
   printOffer: "Drukuj / PDF",
 
@@ -529,10 +557,12 @@ const pl: Record<TranslationKey, string> = {
   toolingCost: "Narzędzia razem",
   costTotal: "Koszt własny",
   clientTotal: "Razem dla klienta",
-  copyWhatsApp: "Kopiuj kosztorys do WhatsApp",
+  copyWhatsApp: "Udostępnij / WhatsApp",
   copied: "Skopiowano",
 
   installHint: "Dodaj do ekranu głównego, aby działało offline.",
+  installHintIos:
+    "Na iPhone: Udostępnij → Dodaj do ekranu głównego (offline).",
   install: "Zainstaluj",
   later: "Później",
 

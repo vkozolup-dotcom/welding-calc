@@ -19,8 +19,9 @@ import { TodayStatsBar } from "@/components/TodayStatsBar";
 import { calculateAll } from "@/lib/calculations";
 import { compressImageToDataUrl } from "@/lib/image";
 import {
+  JOB_SOFT_CAP,
   downloadTextFile,
-  exportJobsJson,
+  exportFullBackupJson,
   sortJobs,
 } from "@/lib/jobsUtils";
 import {
@@ -31,9 +32,19 @@ import {
   t,
 } from "@/lib/i18n";
 import { buildWhatsAppQuote } from "@/lib/quote";
-import { createJobId, loadJobs, mergeInputs, saveJobs } from "@/lib/storage";
+import { shareOrSendText } from "@/lib/share";
+import {
+  createJobId,
+  loadJobs,
+  loadPriceBooks,
+  loadSettings,
+  mergeInputs,
+  sanitizePrices,
+  saveJobs,
+  savePriceBooks,
+} from "@/lib/storage";
 import { isSafePhotoDataUrl } from "@/lib/security";
-import type { Locale, SavedJob } from "@/lib/types";
+import type { Locale, PriceBookStore, SavedJob } from "@/lib/types";
 
 interface JobsPanelProps {
   locale: Locale;
@@ -60,6 +71,11 @@ export function JobsPanel({
     setJobs(loadJobs());
   }, [refreshKey]);
 
+  function flashError(key: "storageFull" | "importFailed" | "photoFailed") {
+    setErrorFlash(t(locale, key));
+    setTimeout(() => setErrorFlash(""), 2500);
+  }
+
   function persist(next: SavedJob[], opts?: { silent?: boolean }): boolean {
     const sorted = sortJobs(next);
     const ok = saveJobs(sorted);
@@ -68,8 +84,7 @@ export function JobsPanel({
       if (!opts?.silent) onMutate?.();
     } else {
       setJobs(loadJobs());
-      setErrorFlash(t(locale, "storageFull"));
-      setTimeout(() => setErrorFlash(""), 2500);
+      flashError("storageFull");
     }
     return ok;
   }
@@ -78,7 +93,6 @@ export function JobsPanel({
     const metaOnly =
       "note" in patch || "photoDataUrl" in patch || "pinned" in patch;
     const touchTime = !metaOnly;
-    // Always read fresh storage — photo compress is async and can race with note edits
     const current = loadJobs();
     const ok = persist(
       current.map((j) =>
@@ -95,9 +109,19 @@ export function JobsPanel({
     if (ok && typeof patch.note === "string") {
       onJobNoteChange?.(id, patch.note);
     }
+    return ok;
+  }
+
+  function deleteJob(job: SavedJob) {
+    if (!window.confirm(t(locale, "jobDeleteConfirm"))) return;
+    persist(loadJobs().filter((j) => j.id !== job.id));
   }
 
   function duplicateJob(job: SavedJob) {
+    const current = loadJobs();
+    if (current.length >= JOB_SOFT_CAP) {
+      if (!window.confirm(t(locale, "jobCapWarn"))) return;
+    }
     const copy: SavedJob = {
       ...structuredClone(job),
       id: createJobId(),
@@ -105,25 +129,32 @@ export function JobsPanel({
       updatedAt: Date.now(),
       pinned: false,
     };
-    persist([copy, ...jobs]);
+    persist([copy, ...current].slice(0, JOB_SOFT_CAP));
   }
 
   function handleExport() {
     const stamp = new Date().toISOString().slice(0, 10);
-    downloadTextFile(`welding-jobs-${stamp}.json`, exportJobsJson(jobs));
+    downloadTextFile(
+      `welding-backup-${stamp}.json`,
+      exportFullBackupJson(loadJobs(), loadPriceBooks(), loadSettings()),
+    );
   }
 
   async function handleImport(file: File | undefined) {
     if (!file) return;
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text) as { jobs?: unknown } | unknown;
+      const parsed = JSON.parse(text) as Record<string, unknown>;
       const list = Array.isArray(parsed)
         ? parsed
-        : Array.isArray((parsed as { jobs?: unknown }).jobs)
-          ? (parsed as { jobs: unknown[] }).jobs
+        : Array.isArray(parsed.jobs)
+          ? parsed.jobs
           : null;
-      if (!list) return;
+      if (!list) {
+        flashError("importFailed");
+        return;
+      }
+
       const incoming: SavedJob[] = [];
       for (const raw of list) {
         if (!raw || typeof raw !== "object") continue;
@@ -144,18 +175,32 @@ export function JobsPanel({
         });
       }
       if (incoming.length === 0) {
-        setErrorFlash(t(locale, "importFailed"));
-        setTimeout(() => setErrorFlash(""), 2500);
+        flashError("importFailed");
         return;
       }
-      const ok = persist([...incoming, ...jobs].slice(0, 80));
+
+      // Full backup v2 may restore price books
+      if (parsed.version === 2 && parsed.priceBooks && typeof parsed.priceBooks === "object") {
+        const books = parsed.priceBooks as Partial<PriceBookStore>;
+        const nextBooks: PriceBookStore = {
+          shop: books.shop ? sanitizePrices(books.shop) : null,
+          onsite: books.onsite ? sanitizePrices(books.onsite) : null,
+        };
+        if (!savePriceBooks(nextBooks)) {
+          flashError("storageFull");
+          return;
+        }
+      }
+
+      const ok = persist(
+        [...incoming, ...loadJobs()].slice(0, JOB_SOFT_CAP * 2),
+      );
       if (ok) {
         setImportFlash(true);
         setTimeout(() => setImportFlash(false), 1500);
       }
     } catch {
-      setErrorFlash(t(locale, "importFailed"));
-      setTimeout(() => setErrorFlash(""), 2500);
+      flashError("importFailed");
     }
   }
 
@@ -246,9 +291,10 @@ export function JobsPanel({
                 job={job}
                 locale={locale}
                 onEdit={() => onEdit(job)}
-                onDelete={() => persist(jobs.filter((j) => j.id !== job.id))}
+                onDelete={() => deleteJob(job)}
                 onDuplicate={() => duplicateJob(job)}
                 onPatch={(patch) => patchJob(job.id, patch)}
+                onPhotoError={() => flashError("photoFailed")}
               />
             ))}
           </ul>
@@ -265,16 +311,19 @@ function JobCard({
   onDelete,
   onDuplicate,
   onPatch,
+  onPhotoError,
 }: {
   job: SavedJob;
   locale: Locale;
   onEdit: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
-  onPatch: (patch: Partial<SavedJob>) => void;
+  onPatch: (patch: Partial<SavedJob>) => boolean;
+  onPhotoError: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
+  const [shareFlash, setShareFlash] = useState("");
+  const [noteDraft, setNoteDraft] = useState(job.note);
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const inputs = job.inputs;
   const { costs, materials } = calculateAll(inputs);
@@ -284,6 +333,16 @@ function JobCard({
     inputs.preset === "pipe"
       ? t(locale, PIPE_MEDIA_KEY[inputs.pipe.media])
       : null;
+
+  useEffect(() => {
+    setNoteDraft(job.note);
+  }, [job.id, job.note]);
+
+  useEffect(() => {
+    return () => {
+      if (noteTimer.current) clearTimeout(noteTimer.current);
+    };
+  }, []);
 
   const rows: { label: string; value: string }[] = [
     {
@@ -317,7 +376,7 @@ function JobCard({
     },
   );
 
-  async function copyWhatsApp() {
+  async function shareWhatsApp() {
     const text = buildWhatsAppQuote(inputs, { materials, costs }, "client");
     const withMeta = [
       `*${job.name}*`,
@@ -327,40 +386,41 @@ function JobCard({
     ]
       .filter(Boolean)
       .join("\n");
-    let ok = false;
-    try {
-      await navigator.clipboard.writeText(withMeta);
-      ok = true;
-    } catch {
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = withMeta;
-        document.body.appendChild(ta);
-        ta.select();
-        ok = document.execCommand("copy");
-        document.body.removeChild(ta);
-      } catch {
-        ok = false;
-      }
-    }
-    if (ok) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
+    const outcome = await shareOrSendText(withMeta, job.name);
+    if (outcome === "cancelled") return;
+    if (outcome === "failed") {
+      setShareFlash(t(locale, "copyFailed"));
+    } else if (outcome === "shared") {
+      setShareFlash(t(locale, "sharedOk"));
+    } else if (outcome === "opened") {
+      setShareFlash(t(locale, "shareOpened"));
     } else {
-      setCopyError(true);
-      setTimeout(() => setCopyError(false), 2000);
+      setShareFlash(t(locale, "jobCopied"));
     }
+    setTimeout(() => setShareFlash(""), 1800);
   }
 
   async function onPhoto(file: File | undefined) {
     if (!file) return;
     try {
       const photoDataUrl = await compressImageToDataUrl(file);
-      if (!isSafePhotoDataUrl(photoDataUrl)) return;
-      onPatch({ photoDataUrl });
+      if (!isSafePhotoDataUrl(photoDataUrl)) {
+        onPhotoError();
+        return;
+      }
+      const ok = onPatch({ photoDataUrl });
+      if (!ok) onPhotoError();
     } catch {
-      /* ignore */
+      onPhotoError();
     }
+  }
+
+  function onNoteChange(value: string) {
+    setNoteDraft(value);
+    if (noteTimer.current) clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(() => {
+      onPatch({ note: value });
+    }, 400);
   }
 
   return (
@@ -414,11 +474,11 @@ function JobCard({
           {t(locale, "jobNote")}
         </span>
         <textarea
-          value={job.note}
+          value={noteDraft}
           rows={2}
           placeholder={t(locale, "jobNotePlaceholder")}
           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
-          onChange={(e) => onPatch({ note: e.target.value })}
+          onChange={(e) => onNoteChange(e.target.value)}
         />
       </label>
 
@@ -476,15 +536,13 @@ function JobCard({
         <button
           type="button"
           className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-600 px-3 py-2.5 text-sm font-semibold text-slate-100"
-          onClick={copyWhatsApp}
+          onClick={() => void shareWhatsApp()}
         >
-          {copied ? (
+          {shareFlash ? (
             <>
               <Check className="h-4 w-4" />
-              {t(locale, "jobCopied")}
+              {shareFlash}
             </>
-          ) : copyError ? (
-            t(locale, "copyFailed")
           ) : (
             <>
               <MessageCircle className="h-4 w-4" />

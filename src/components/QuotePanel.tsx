@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, MessageCircle, Printer } from "lucide-react";
+import { Check, MessageCircle, Printer } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
 import { t } from "@/lib/i18n";
 import { buildQuoteSections, buildWhatsAppQuote } from "@/lib/quote";
+import { shareOrSendText } from "@/lib/share";
 import type { CalcInputs, FullResult } from "@/lib/types";
 
 interface QuotePanelProps {
@@ -12,23 +13,24 @@ interface QuotePanelProps {
   result: FullResult;
 }
 
+function useShareFlash(locale: CalcInputs["locale"]) {
+  const [flash, setFlash] = useState("");
+  async function share(text: string, title?: string) {
+    const outcome = await shareOrSendText(text, title);
+    if (outcome === "cancelled") return;
+    if (outcome === "failed") setFlash(t(locale, "copyFailed"));
+    else if (outcome === "shared") setFlash(t(locale, "sharedOk"));
+    else if (outcome === "opened") setFlash(t(locale, "shareOpened"));
+    else setFlash(t(locale, "copied"));
+    setTimeout(() => setFlash(""), 2000);
+  }
+  return { flash, share };
+}
+
 export function QuotePanel({ inputs, result }: QuotePanelProps) {
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
   const { locale } = inputs;
   const sections = buildQuoteSections(inputs, result);
-
-  async function copyQuote() {
-    const text = buildWhatsAppQuote(inputs, result, "friend");
-    const ok = await copyText(text);
-    if (!ok) {
-      setCopyError(true);
-      setTimeout(() => setCopyError(false), 2000);
-      return;
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
+  const { flash, share } = useShareFlash(locale);
 
   return (
     <SectionCard
@@ -84,22 +86,22 @@ export function QuotePanel({ inputs, result }: QuotePanelProps) {
       <div className="mt-4 grid grid-cols-1 gap-2 no-print sm:grid-cols-2">
         <button
           type="button"
-          onClick={copyQuote}
+          onClick={() =>
+            void share(
+              buildWhatsAppQuote(inputs, result, "friend"),
+              t(locale, "quoteTitle"),
+            )
+          }
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 p-3 text-base font-bold text-slate-950 transition hover:bg-amber-400 active:scale-[0.99]"
         >
-          {copied ? (
+          {flash ? (
             <>
               <Check className="h-5 w-5" />
-              {t(locale, "copied")}
-            </>
-          ) : copyError ? (
-            <>
-              <Copy className="h-5 w-5" />
-              {t(locale, "copyFailed")}
+              {flash}
             </>
           ) : (
             <>
-              <Copy className="h-5 w-5" />
+              <MessageCircle className="h-5 w-5" />
               {t(locale, "copyWhatsApp")}
             </>
           )}
@@ -124,22 +126,9 @@ export function ClientOfferPanel({
   inputs: CalcInputs;
   result: FullResult;
 }) {
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
   const { locale } = inputs;
   const sections = buildQuoteSections(inputs, result);
-
-  async function copyQuote() {
-    const text = buildWhatsAppQuote(inputs, result, "client");
-    const ok = await copyText(text);
-    if (!ok) {
-      setCopyError(true);
-      setTimeout(() => setCopyError(false), 2000);
-      return;
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
+  const { flash, share } = useShareFlash(locale);
 
   return (
     <SectionCard
@@ -165,22 +154,22 @@ export function ClientOfferPanel({
       <div className="mt-4 grid grid-cols-1 gap-2 no-print sm:grid-cols-2">
         <button
           type="button"
-          onClick={copyQuote}
+          onClick={() =>
+            void share(
+              buildWhatsAppQuote(inputs, result, "client"),
+              t(locale, "clientOfferTitle"),
+            )
+          }
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 p-3 text-base font-bold text-slate-950 transition hover:bg-amber-400 active:scale-[0.99]"
         >
-          {copied ? (
+          {flash ? (
             <>
               <Check className="h-5 w-5" />
-              {t(locale, "copied")}
-            </>
-          ) : copyError ? (
-            <>
-              <Copy className="h-5 w-5" />
-              {t(locale, "copyFailed")}
+              {flash}
             </>
           ) : (
             <>
-              <Copy className="h-5 w-5" />
+              <MessageCircle className="h-5 w-5" />
               {t(locale, "copyClientWhatsApp")}
             </>
           )}
@@ -196,25 +185,6 @@ export function ClientOfferPanel({
       </div>
     </SectionCard>
   );
-}
-
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      return ok;
-    } catch {
-      return false;
-    }
-  }
 }
 
 function TotalBlock({
@@ -255,7 +225,11 @@ function DetailBlock({
       </div>
       <div className="space-y-1.5 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
         {rows.map((row) => (
-          <Row key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
+          <Row
+            key={`${row.label}-${row.value}`}
+            label={row.label}
+            value={row.value}
+          />
         ))}
       </div>
     </div>

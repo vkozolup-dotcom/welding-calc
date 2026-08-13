@@ -226,7 +226,7 @@ export function saveSettings(
   inputs: CalcInputs,
   tab: AppTab,
   activeJobId: string | null,
-): void {
+): boolean {
   try {
     localStorage.setItem(
       SETTINGS_STORAGE_KEY,
@@ -236,8 +236,9 @@ export function saveSettings(
         activeJobId,
       } satisfies PersistedSettings),
     );
+    return true;
   } catch {
-    /* ignore quota */
+    return false;
   }
 }
 
@@ -301,11 +302,12 @@ export function loadPriceBooks(): PriceBookStore {
   }
 }
 
-export function savePriceBooks(store: PriceBookStore): void {
+export function savePriceBooks(store: PriceBookStore): boolean {
   try {
     localStorage.setItem(PRICE_BOOKS_KEY, JSON.stringify(store));
+    return true;
   } catch {
-    /* ignore */
+    return false;
   }
 }
 

@@ -1,6 +1,9 @@
 import { calculateAll } from "./calculations";
-import type { Locale, SavedJob } from "./types";
+import type { Locale, PriceBookStore, SavedJob } from "./types";
+import type { PersistedSettings } from "./storage";
 import { formatNum, t } from "./i18n";
+
+export const JOB_SOFT_CAP = 40;
 
 function startOfToday(): number {
   const d = new Date();
@@ -54,6 +57,29 @@ export function exportJobsJson(jobs: SavedJob[]): string {
     null,
     2,
   );
+}
+
+export interface FullBackupPayload {
+  version: 2;
+  exportedAt: string;
+  jobs: SavedJob[];
+  priceBooks: PriceBookStore;
+  settings: PersistedSettings | null;
+}
+
+export function exportFullBackupJson(
+  jobs: SavedJob[],
+  priceBooks: PriceBookStore,
+  settings: PersistedSettings | null,
+): string {
+  const payload: FullBackupPayload = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    jobs,
+    priceBooks,
+    settings,
+  };
+  return JSON.stringify(payload, null, 2);
 }
 
 export function downloadTextFile(filename: string, content: string): void {

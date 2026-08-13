@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Kalkulator Spawalniczy TIG",
     short_name: "TIG Calc",
     description:
-      "TIG welding estimator: metal, filler rod, argon, quote · RU/PL · PLN/USD",
+      "TIG welding estimator: pipes, filler rod, argon, quotes · PL/EN · PLN/USD",
     start_url: "/",
     display: "standalone",
     background_color: "#020617",
