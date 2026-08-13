@@ -26,6 +26,7 @@ export function ToolingForm({
       title={t(locale, "toolingTitle")}
       subtitle={t(locale, "toolingSubtitle")}
       icon={<Disc3 className="h-5 w-5" />}
+      collapsible
     >
       <div className="space-y-4">
         <ToolRow

@@ -18,6 +18,7 @@ export function FactorsForm({ locale, value, onChange }: FactorsFormProps) {
       title={t(locale, "factorsTitle")}
       subtitle={t(locale, "factorsSubtitle")}
       icon={<SlidersHorizontal className="h-5 w-5" />}
+      collapsible
     >
       <div className="grid grid-cols-2 gap-3">
         <NumberField

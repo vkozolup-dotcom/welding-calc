@@ -64,6 +64,7 @@ export function PriceBooksForm({
       title={t(locale, "priceBooksTitle")}
       subtitle={t(locale, "priceBooksSubtitle")}
       icon={<Bookmark className="h-5 w-5" />}
+      collapsible
     >
       <div className="grid grid-cols-2 gap-3">
         {(["shop", "onsite"] as const).map((id) => {

@@ -33,6 +33,7 @@ export function PriceForm({
       title={t(locale, "pricesTitle")}
       subtitle={t(locale, "pricesSubtitle")}
       icon={<Wallet className="h-5 w-5" />}
+      collapsible
     >
       <div className="space-y-3">
         <Segmented<JobMode>

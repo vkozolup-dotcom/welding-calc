@@ -80,6 +80,7 @@ export function ResultsPanel({
           : t(locale, "resultsSubtitle")
       }
       icon={<Sparkles className="h-5 w-5" />}
+      collapsible
     >
       {onsite ? (
         <div className="space-y-3">

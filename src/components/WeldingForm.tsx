@@ -24,6 +24,7 @@ export function WeldingForm({ locale, value, onChange }: WeldingFormProps) {
       title={t(locale, "weldTitle")}
       subtitle={t(locale, "weldSubtitle")}
       icon={<Flame className="h-5 w-5" />}
+      collapsible
     >
       <div className="space-y-3">
         <Segmented<WeldJointType>
