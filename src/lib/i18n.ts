@@ -115,6 +115,12 @@ const en = {
   todayStatsLine: "{jobs} jobs · {hrs} h · {cm} cm weld",
   todayEmpty: "No jobs touched today yet",
 
+  hoursSource: "Hours source",
+  hoursAuto: "Auto estimate",
+  hoursManual: "Manual",
+  storageFull: "Storage full — remove photos or export and clear old jobs",
+  importFailed: "Import failed",
+  copyFailed: "Copy failed",
   jobCopySuffix: "copy",
 
   weldTitle: "TIG welding",
@@ -386,6 +392,13 @@ const pl: Record<TranslationKey, string> = {
   todayStatsLine: "{jobs} zleceń · {hrs} h · {cm} cm spawu",
   todayEmpty: "Dziś jeszcze nie ruszano zleceń",
 
+  hoursSource: "Źródło godzin",
+  hoursAuto: "Auto",
+  hoursManual: "Ręcznie",
+  storageFull: "Brak miejsca — usuń zdjęcia lub wyeksportuj stare zlecenia",
+  importFailed: "Import nieudany",
+  copyFailed: "Kopiowanie nieudane",
+
   jobCopySuffix: "kopia",
 
   weldTitle: "Spawanie TIG",
@@ -588,6 +601,7 @@ export function formatMoney(
   locale: Locale,
   currency: Currency,
 ): string {
+  if (!Number.isFinite(value)) return "—";
   return value.toLocaleString(localeTag(locale), {
     style: "currency",
     currency,
@@ -596,6 +610,7 @@ export function formatMoney(
 }
 
 export function formatEur(value: number, locale: Locale): string {
+  if (!Number.isFinite(value)) return "—";
   return value.toLocaleString(localeTag(locale), {
     style: "currency",
     currency: "EUR",

@@ -41,6 +41,7 @@ export function WeldingCalculator() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeJobName, setActiveJobName] = useState<string | null>(null);
   const [saveFlash, setSaveFlash] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [jobsRefresh, setJobsRefresh] = useState(0);
   const [todayJobs, setTodayJobs] = useState<SavedJob[]>([]);
 
@@ -94,9 +95,10 @@ export function WeldingCalculator() {
       jobNote: inputs.jobNote,
     });
 
+    let ok = false;
     if (!asNew && activeJobId) {
-      const exists = jobs.some((j) => j.id === activeJobId);
-      if (!exists) {
+      const existing = jobs.find((j) => j.id === activeJobId);
+      if (!existing) {
         // Deleted while editing — fall through to create new
         const job: SavedJob = {
           id: createJobId(),
@@ -107,24 +109,36 @@ export function WeldingCalculator() {
           photoDataUrl: null,
           pinned: false,
         };
-        saveJobs([job, ...jobs].slice(0, 40));
-        setActiveJobId(job.id);
-        setActiveJobName(job.name);
-        setJobName(job.name);
+        ok = saveJobs([job, ...jobs].slice(0, 40));
+        if (ok) {
+          setActiveJobId(job.id);
+          setActiveJobName(job.name);
+          setJobName(job.name);
+        }
       } else {
+        // Prefer Jobs-card note when form note was not edited since last save
+        const note =
+          inputs.jobNote === (existing.inputs.jobNote || "") &&
+          existing.note !== (existing.inputs.jobNote || "")
+            ? existing.note
+            : inputs.jobNote;
+        const nextInputs = { ...payloadInputs, jobNote: note };
         const next = jobs.map((j) =>
           j.id === activeJobId
             ? {
                 ...j,
                 name: label,
                 updatedAt: Date.now(),
-                inputs: payloadInputs,
-                note: inputs.jobNote,
+                inputs: nextInputs,
+                note,
               }
             : j,
         );
-        saveJobs(next);
-        setActiveJobName(label);
+        ok = saveJobs(next);
+        if (ok) {
+          setActiveJobName(label);
+          if (note !== inputs.jobNote) patch({ jobNote: note });
+        }
       }
     } else {
       const job: SavedJob = {
@@ -136,10 +150,18 @@ export function WeldingCalculator() {
         photoDataUrl: null,
         pinned: false,
       };
-      saveJobs([job, ...jobs].slice(0, 40));
-      setActiveJobId(job.id);
-      setActiveJobName(job.name);
-      setJobName(job.name);
+      ok = saveJobs([job, ...jobs].slice(0, 40));
+      if (ok) {
+        setActiveJobId(job.id);
+        setActiveJobName(job.name);
+        setJobName(job.name);
+      }
+    }
+
+    if (!ok) {
+      setSaveError(t(locale, "storageFull"));
+      setTimeout(() => setSaveError(""), 2500);
+      return;
     }
 
     setJobsRefresh((n) => n + 1);
@@ -182,6 +204,10 @@ export function WeldingCalculator() {
       setActiveJobId(null);
       setActiveJobName(null);
     }
+  }
+
+  function onJobNoteChange(id: string, note: string) {
+    if (id === activeJobId) patch({ jobNote: note });
   }
 
   const tabs = [
@@ -262,6 +288,7 @@ export function WeldingCalculator() {
             onEdit={editJob}
             refreshKey={jobsRefresh}
             onMutate={onJobsMutated}
+            onJobNoteChange={onJobNoteChange}
           />
         </div>
       ) : (
@@ -329,6 +356,9 @@ export function WeldingCalculator() {
                   : t(locale, "jobSaveAsNew")}
               </button>
             </div>
+            {saveError ? (
+              <p className="mt-2 text-xs font-medium text-rose-400">{saveError}</p>
+            ) : null}
           </div>
 
           <div className="no-print">
@@ -412,14 +442,16 @@ export function WeldingCalculator() {
             />
           </div>
 
-          <div className="no-print">
-            <ToolingForm
-              locale={locale}
-              currency={currency}
-              value={inputs.tooling}
-              onChange={(tooling) => patch({ tooling })}
-            />
-          </div>
+          {!onsite && (
+            <div className="no-print">
+              <ToolingForm
+                locale={locale}
+                currency={currency}
+                value={inputs.tooling}
+                onChange={(tooling) => patch({ tooling })}
+              />
+            </div>
+          )}
 
           <div className="print-area">
             <QuotePanel inputs={inputs} result={result} />

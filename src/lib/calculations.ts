@@ -305,28 +305,32 @@ export function calcCosts(
     weldSeamCost = materials.weldLengthCm * prices.weldPricePerCm;
   }
 
-  const grindingDiscsCost =
-    Math.max(0, tooling.grindingDiscsQty) *
-    Math.max(0, tooling.grindingDiscsUnitPrice);
-  const cuttingDiscsCost =
-    Math.max(0, tooling.cuttingDiscsQty) *
-    Math.max(0, tooling.cuttingDiscsUnitPrice);
-  const abrasiveWheelsCost =
-    Math.max(0, tooling.abrasiveWheelsQty) *
-    Math.max(0, tooling.abrasiveWheelsUnitPrice);
-  const millsCost =
-    Math.max(0, tooling.millsQty) * Math.max(0, tooling.millsUnitPrice);
+  const grindingDiscsCost = onsite
+    ? 0
+    : Math.max(0, tooling.grindingDiscsQty) *
+      Math.max(0, tooling.grindingDiscsUnitPrice);
+  const cuttingDiscsCost = onsite
+    ? 0
+    : Math.max(0, tooling.cuttingDiscsQty) *
+      Math.max(0, tooling.cuttingDiscsUnitPrice);
+  const abrasiveWheelsCost = onsite
+    ? 0
+    : Math.max(0, tooling.abrasiveWheelsQty) *
+      Math.max(0, tooling.abrasiveWheelsUnitPrice);
+  const millsCost = onsite
+    ? 0
+    : Math.max(0, tooling.millsQty) * Math.max(0, tooling.millsUnitPrice);
   const toolingCost =
     grindingDiscsCost + cuttingDiscsCost + abrasiveWheelsCost + millsCost;
 
   const costTotal =
     metalCost + fillerCost + gasCost + laborCost + weldSeamCost + toolingCost;
   const deliveryCost = prices.deliveryEnabled
-    ? Math.max(0, prices.deliveryPrice)
+    ? Math.max(0, Number(prices.deliveryPrice) || 0)
     : 0;
   const netBeforeVat = costTotal + deliveryCost;
   const vatAmount = prices.invoiceEnabled
-    ? netBeforeVat * (Math.max(0, prices.vatPercent) / 100)
+    ? netBeforeVat * (Math.max(0, Number(prices.vatPercent) || 0) / 100)
     : 0;
   const clientPrice = netBeforeVat + vatAmount;
   const rate = prices.eurRate > 0 ? prices.eurRate : 1;

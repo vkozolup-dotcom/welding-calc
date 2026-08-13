@@ -1,9 +1,10 @@
 import { createPipeSegment, DEFAULT_FACTORS, DEFAULT_INPUTS } from "./defaults";
-import { JOBS_STORAGE_KEY, PRICE_BOOKS_KEY, SETTINGS_STORAGE_KEY } from "./constants";
+import { JOBS_STORAGE_KEY, PRICE_BOOKS_KEY, PROFILES, SETTINGS_STORAGE_KEY } from "./constants";
 import { isSafePhotoDataUrl } from "./security";
 import type {
   AppTab,
   CalcInputs,
+  FactorParams,
   PipeParams,
   PriceBookStore,
   PriceParams,
@@ -29,6 +30,52 @@ function asFiniteNumber(v: unknown, fallback: number): number {
   return fallback;
 }
 
+export function sanitizePrices(raw: Record<string, unknown> | PriceParams): PriceParams {
+  const p = raw as Record<string, unknown>;
+  const base = DEFAULT_INPUTS.prices;
+  return {
+    jobMode: p.jobMode === "onsite" ? "onsite" : "full",
+    profilePricePerM: Math.max(0, asFiniteNumber(p.profilePricePerM, base.profilePricePerM)),
+    rodPackPrice: Math.max(0, asFiniteNumber(p.rodPackPrice, base.rodPackPrice)),
+    rodPackKg: Math.max(0, asFiniteNumber(p.rodPackKg, base.rodPackKg)),
+    gasRefillPrice: Math.max(0, asFiniteNumber(p.gasRefillPrice, base.gasRefillPrice)),
+    laborMode: p.laborMode === "hour" ? "hour" : "per_cm",
+    laborHourPrice: Math.max(0, asFiniteNumber(p.laborHourPrice, base.laborHourPrice)),
+    weldPricePerCm: Math.max(0, asFiniteNumber(p.weldPricePerCm, base.weldPricePerCm)),
+    manualHours: Math.max(0, asFiniteNumber(p.manualHours, base.manualHours)),
+    useManualHours: p.useManualHours === true,
+    vatPercent: Math.max(0, asFiniteNumber(p.vatPercent, base.vatPercent)),
+    invoiceEnabled: p.invoiceEnabled !== false,
+    deliveryEnabled: p.deliveryEnabled === true,
+    deliveryPrice: Math.max(0, asFiniteNumber(p.deliveryPrice, base.deliveryPrice)),
+    eurRate: Math.max(0.01, asFiniteNumber(p.eurRate, base.eurRate)),
+  };
+}
+
+function sanitizeFactors(
+  raw: Record<string, unknown> | FactorParams,
+): FactorParams {
+  const f = raw as Record<string, unknown>;
+  const base = DEFAULT_FACTORS;
+  return {
+    cutWastePercent: Math.max(0, asFiniteNumber(f.cutWastePercent, base.cutWastePercent)),
+    rodLossPercent: Math.max(0, asFiniteNumber(f.rodLossPercent, base.rodLossPercent)),
+    prepWorkPercent: Math.max(0, asFiniteNumber(f.prepWorkPercent, base.prepWorkPercent)),
+    weldSpeedMPerMin: Math.max(
+      0.01,
+      asFiniteNumber(f.weldSpeedMPerMin, base.weldSpeedMPerMin),
+    ),
+    fabTimeFactor: Math.max(0.1, asFiniteNumber(f.fabTimeFactor, base.fabTimeFactor)),
+  };
+}
+
+function knownPipeProfileId(id: unknown): string {
+  if (typeof id === "string" && PROFILES.some((p) => p.id === id && p.kind === "pipe")) {
+    return id;
+  }
+  return "pipe-33.7x2.5";
+}
+
 function migratePipe(raw: unknown): PipeParams {
   const base = structuredClone(DEFAULT_INPUTS.pipe);
   if (!isObject(raw)) return base;
@@ -44,10 +91,7 @@ function migratePipe(raw: unknown): PipeParams {
         const seg = isObject(s) ? s : {};
         return createPipeSegment({
           id: typeof seg.id === "string" ? seg.id : undefined,
-          profileId:
-            typeof seg.profileId === "string"
-              ? seg.profileId
-              : "pipe-33.7x2.5",
+          profileId: knownPipeProfileId(seg.profileId),
           lengthM: asFiniteNumber(seg.lengthM, 6),
           buttJoints: asFiniteNumber(seg.buttJoints, 0),
           elbows: asFiniteNumber(seg.elbows, 0),
@@ -67,10 +111,7 @@ function migratePipe(raw: unknown): PipeParams {
           : base.media,
       segments: [
         createPipeSegment({
-          profileId:
-            typeof raw.profileId === "string"
-              ? raw.profileId
-              : "pipe-33.7x2.5",
+          profileId: knownPipeProfileId(raw.profileId),
           lengthM: asFiniteNumber(raw.lengthM, 12),
           buttJoints: asFiniteNumber(raw.buttJoints, 0),
           elbows: asFiniteNumber(raw.elbows, 0),
@@ -108,11 +149,14 @@ export function mergeInputs(raw: unknown): CalcInputs {
       ...(isObject(raw.welding) ? raw.welding : {}),
     },
     tooling: { ...base.tooling, ...(isObject(raw.tooling) ? raw.tooling : {}) },
-    prices: { ...base.prices, ...(isObject(raw.prices) ? raw.prices : {}) },
-    factors: {
+    prices: sanitizePrices({
+      ...base.prices,
+      ...(isObject(raw.prices) ? raw.prices : {}),
+    }),
+    factors: sanitizeFactors({
       ...DEFAULT_FACTORS,
       ...(isObject(raw.factors) ? raw.factors : {}),
-    },
+    }),
     jobNote: typeof raw.jobNote === "string" ? raw.jobNote : "",
   } as CalcInputs;
 
@@ -230,11 +274,12 @@ export function loadJobs(): SavedJob[] {
   }
 }
 
-export function saveJobs(jobs: SavedJob[]): void {
+export function saveJobs(jobs: SavedJob[]): boolean {
   try {
     localStorage.setItem(JOBS_STORAGE_KEY, JSON.stringify(jobs));
+    return true;
   } catch {
-    /* ignore */
+    return false;
   }
 }
 
@@ -248,12 +293,8 @@ export function loadPriceBooks(): PriceBookStore {
     if (!raw) return { shop: null, onsite: null };
     const parsed = JSON.parse(raw) as Partial<PriceBookStore>;
     return {
-      shop: isObject(parsed.shop)
-        ? ({ ...DEFAULT_INPUTS.prices, ...parsed.shop } as PriceParams)
-        : null,
-      onsite: isObject(parsed.onsite)
-        ? ({ ...DEFAULT_INPUTS.prices, ...parsed.onsite } as PriceParams)
-        : null,
+      shop: isObject(parsed.shop) ? sanitizePrices(parsed.shop) : null,
+      onsite: isObject(parsed.onsite) ? sanitizePrices(parsed.onsite) : null,
     };
   } catch {
     return { shop: null, onsite: null };

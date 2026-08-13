@@ -98,7 +98,15 @@ export function PriceForm({
             <Segmented<LaborMode>
               label={t(locale, "laborPayMode")}
               value={value.laborMode}
-              onChange={(laborMode) => onChange({ ...value, laborMode })}
+              onChange={(laborMode) =>
+                onChange({
+                  ...value,
+                  laborMode,
+                  // Switching to per_cm always uses seam length; hour starts on auto estimate
+                  useManualHours:
+                    laborMode === "hour" ? value.useManualHours : false,
+                })
+              }
               options={[
                 { value: "hour", label: t(locale, "laborModeHour") },
                 { value: "per_cm", label: t(locale, "laborModeCm") },
@@ -118,19 +126,34 @@ export function PriceForm({
                 onChange({ ...value, laborHourPrice })
               }
             />
-            <NumberField
-              label={t(locale, "manualHours")}
-              suffix="h"
-              value={value.manualHours}
-              step={0.5}
-              onChange={(manualHours) =>
-                onChange({
-                  ...value,
-                  manualHours,
-                  useManualHours: true,
-                })
-              }
-            />
+            {!onsite ? (
+              <Segmented<"auto" | "manual">
+                label={t(locale, "hoursSource")}
+                value={value.useManualHours ? "manual" : "auto"}
+                onChange={(next) =>
+                  onChange({ ...value, useManualHours: next === "manual" })
+                }
+                options={[
+                  { value: "auto", label: t(locale, "hoursAuto") },
+                  { value: "manual", label: t(locale, "hoursManual") },
+                ]}
+              />
+            ) : null}
+            {(onsite || value.useManualHours) && (
+              <NumberField
+                label={t(locale, "manualHours")}
+                suffix="h"
+                value={value.manualHours}
+                step={0.5}
+                onChange={(manualHours) =>
+                  onChange({
+                    ...value,
+                    manualHours,
+                    useManualHours: true,
+                  })
+                }
+              />
+            )}
           </>
         )}
 
@@ -151,7 +174,7 @@ export function PriceForm({
             ? t(locale, "invoiceOn")
             : t(locale, "invoiceOff")}
           {value.invoiceEnabled
-            ? ` · ${t(locale, "vat", { pct: value.vatPercent })}`
+            ? ` · ${t(locale, "vat", { pct: Math.max(0, value.vatPercent) })}`
             : ""}
         </div>
 
@@ -166,6 +189,15 @@ export function PriceForm({
             { value: "off", label: t(locale, "invoiceOffShort") },
           ]}
         />
+        {value.invoiceEnabled && (
+          <NumberField
+            label={t(locale, "vatLabel")}
+            suffix="%"
+            value={value.vatPercent}
+            step={1}
+            onChange={(vatPercent) => onChange({ ...value, vatPercent })}
+          />
+        )}
 
         <Segmented<"on" | "off">
           label={t(locale, "deliveryToggle")}

@@ -14,12 +14,18 @@ interface QuotePanelProps {
 
 export function QuotePanel({ inputs, result }: QuotePanelProps) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const { locale } = inputs;
   const sections = buildQuoteSections(inputs, result);
 
   async function copyQuote() {
     const text = buildWhatsAppQuote(inputs, result, "friend");
-    await copyText(text);
+    const ok = await copyText(text);
+    if (!ok) {
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 2000);
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -86,6 +92,11 @@ export function QuotePanel({ inputs, result }: QuotePanelProps) {
               <Check className="h-5 w-5" />
               {t(locale, "copied")}
             </>
+          ) : copyError ? (
+            <>
+              <Copy className="h-5 w-5" />
+              {t(locale, "copyFailed")}
+            </>
           ) : (
             <>
               <Copy className="h-5 w-5" />
@@ -114,12 +125,18 @@ export function ClientOfferPanel({
   result: FullResult;
 }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const { locale } = inputs;
   const sections = buildQuoteSections(inputs, result);
 
   async function copyQuote() {
     const text = buildWhatsAppQuote(inputs, result, "client");
-    await copyText(text);
+    const ok = await copyText(text);
+    if (!ok) {
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 2000);
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -156,6 +173,11 @@ export function ClientOfferPanel({
               <Check className="h-5 w-5" />
               {t(locale, "copied")}
             </>
+          ) : copyError ? (
+            <>
+              <Copy className="h-5 w-5" />
+              {t(locale, "copyFailed")}
+            </>
           ) : (
             <>
               <Copy className="h-5 w-5" />
@@ -176,16 +198,22 @@ export function ClientOfferPanel({
   );
 }
 
-async function copyText(text: string) {
+async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
+    return true;
   } catch {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
+    }
   }
 }
 

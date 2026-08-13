@@ -4,8 +4,13 @@ import { useEffect, useState } from "react";
 import { Bookmark } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
 import { t } from "@/lib/i18n";
-import { loadPriceBooks, savePriceBooks } from "@/lib/storage";
-import type { Locale, PriceBookId, PriceBookStore, PriceParams } from "@/lib/types";
+import { loadPriceBooks, sanitizePrices, savePriceBooks } from "@/lib/storage";
+import type {
+  Locale,
+  PriceBookId,
+  PriceBookStore,
+  PriceParams,
+} from "@/lib/types";
 
 interface PriceBooksFormProps {
   locale: Locale;
@@ -29,11 +34,29 @@ export function PriceBooksForm({
   }, []);
 
   function saveBook(id: PriceBookId) {
-    const next = { ...books, [id]: structuredClone(value) };
+    const snapshot: PriceParams = sanitizePrices({
+      ...structuredClone(value),
+      jobMode: id === "onsite" ? "onsite" : "full",
+      laborMode: id === "onsite" ? "hour" : value.laborMode,
+      useManualHours: id === "onsite" ? true : value.useManualHours,
+    });
+    const next = { ...books, [id]: snapshot };
     setBooks(next);
     savePriceBooks(next);
     setFlash(id);
     setTimeout(() => setFlash(null), 1200);
+  }
+
+  function applyBook(id: PriceBookId) {
+    const saved = books[id];
+    if (!saved) return;
+    const prices: PriceParams = {
+      ...sanitizePrices(structuredClone(saved)),
+      jobMode: id === "onsite" ? "onsite" : "full",
+      laborMode: id === "onsite" ? "hour" : saved.laborMode,
+      useManualHours: id === "onsite" ? true : saved.useManualHours === true,
+    };
+    onApply(prices);
   }
 
   return (
@@ -62,7 +85,7 @@ export function PriceBooksForm({
                 <button
                   type="button"
                   disabled={!saved}
-                  onClick={() => saved && onApply(structuredClone(saved))}
+                  onClick={() => applyBook(id)}
                   className="rounded-lg bg-amber-500 px-2 py-2 text-xs font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {t(locale, "priceBookApply")}

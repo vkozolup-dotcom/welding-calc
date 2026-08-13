@@ -40,6 +40,7 @@ interface JobsPanelProps {
   onEdit: (job: SavedJob) => void;
   refreshKey?: number;
   onMutate?: () => void;
+  onJobNoteChange?: (id: string, note: string) => void;
 }
 
 export function JobsPanel({
@@ -47,29 +48,53 @@ export function JobsPanel({
   onEdit,
   refreshKey = 0,
   onMutate,
+  onJobNoteChange,
 }: JobsPanelProps) {
   const [jobs, setJobs] = useState<SavedJob[]>([]);
   const [query, setQuery] = useState("");
   const [importFlash, setImportFlash] = useState(false);
+  const [errorFlash, setErrorFlash] = useState("");
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setJobs(loadJobs());
   }, [refreshKey]);
 
-  function persist(next: SavedJob[]) {
+  function persist(next: SavedJob[], opts?: { silent?: boolean }): boolean {
     const sorted = sortJobs(next);
-    setJobs(sorted);
-    saveJobs(sorted);
-    onMutate?.();
+    const ok = saveJobs(sorted);
+    if (ok) {
+      setJobs(sorted);
+      if (!opts?.silent) onMutate?.();
+    } else {
+      setJobs(loadJobs());
+      setErrorFlash(t(locale, "storageFull"));
+      setTimeout(() => setErrorFlash(""), 2500);
+    }
+    return ok;
   }
 
   function patchJob(id: string, patch: Partial<SavedJob>) {
-    persist(
-      jobs.map((j) =>
-        j.id === id ? { ...j, ...patch, updatedAt: Date.now() } : j,
+    const metaOnly =
+      "note" in patch || "photoDataUrl" in patch || "pinned" in patch;
+    const touchTime = !metaOnly;
+    // Always read fresh storage — photo compress is async and can race with note edits
+    const current = loadJobs();
+    const ok = persist(
+      current.map((j) =>
+        j.id === id
+          ? {
+              ...j,
+              ...patch,
+              updatedAt: touchTime ? Date.now() : j.updatedAt,
+            }
+          : j,
       ),
+      { silent: metaOnly },
     );
+    if (ok && typeof patch.note === "string") {
+      onJobNoteChange?.(id, patch.note);
+    }
   }
 
   function duplicateJob(job: SavedJob) {
@@ -118,12 +143,19 @@ export function JobsPanel({
           pinned: r.pinned === true,
         });
       }
-      if (incoming.length === 0) return;
-      persist([...incoming, ...jobs].slice(0, 80));
-      setImportFlash(true);
-      setTimeout(() => setImportFlash(false), 1500);
+      if (incoming.length === 0) {
+        setErrorFlash(t(locale, "importFailed"));
+        setTimeout(() => setErrorFlash(""), 2500);
+        return;
+      }
+      const ok = persist([...incoming, ...jobs].slice(0, 80));
+      if (ok) {
+        setImportFlash(true);
+        setTimeout(() => setImportFlash(false), 1500);
+      }
     } catch {
-      /* ignore bad file */
+      setErrorFlash(t(locale, "importFailed"));
+      setTimeout(() => setErrorFlash(""), 2500);
     }
   }
 
@@ -154,6 +186,11 @@ export function JobsPanel({
         icon={<FolderOpen className="h-5 w-5" />}
       >
         <div className="mb-3 space-y-2">
+          {errorFlash ? (
+            <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+              {errorFlash}
+            </p>
+          ) : null}
           <label className="block">
             <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-400">
               <Search className="h-3.5 w-3.5" />
@@ -237,6 +274,7 @@ function JobCard({
   onPatch: (patch: Partial<SavedJob>) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const inputs = job.inputs;
   const { costs, materials } = calculateAll(inputs);
@@ -289,18 +327,29 @@ function JobCard({
     ]
       .filter(Boolean)
       .join("\n");
+    let ok = false;
     try {
       await navigator.clipboard.writeText(withMeta);
+      ok = true;
     } catch {
-      const ta = document.createElement("textarea");
-      ta.value = withMeta;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = withMeta;
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch {
+        ok = false;
+      }
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1600);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } else {
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 2000);
+    }
   }
 
   async function onPhoto(file: File | undefined) {
@@ -434,6 +483,8 @@ function JobCard({
               <Check className="h-4 w-4" />
               {t(locale, "jobCopied")}
             </>
+          ) : copyError ? (
+            t(locale, "copyFailed")
           ) : (
             <>
               <MessageCircle className="h-4 w-4" />

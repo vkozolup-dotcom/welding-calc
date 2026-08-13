@@ -59,16 +59,19 @@ export function buildQuoteSections(
   const prepPct = factors.prepWorkPercent;
   const cutPct = factors.cutWastePercent;
 
-  const dimensions: QuoteRow[] = [
-    {
-      label: t(locale, "metalType"),
-      value: t(
-        locale,
-        inputs.metalType === "stainless" ? "metalStainless" : "metalMild",
-      ),
-    },
-  ];
+  const dimensions: QuoteRow[] = onsite
+    ? []
+    : [
+        {
+          label: t(locale, "metalType"),
+          value: t(
+            locale,
+            inputs.metalType === "stainless" ? "metalStainless" : "metalMild",
+          ),
+        },
+      ];
 
+  if (!onsite) {
   switch (inputs.preset) {
     case "pipe": {
       dimensions.push({
@@ -166,6 +169,7 @@ export function buildQuoteSections(
       );
       break;
     }
+  }
   }
 
   const gasLabel =
