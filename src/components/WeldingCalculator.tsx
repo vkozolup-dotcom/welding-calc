@@ -33,7 +33,6 @@ import {
 import type {
   AppTab,
   CalcInputs,
-  Currency,
   Locale,
   PresetId,
   SavedJob,
@@ -273,23 +272,19 @@ export function WeldingCalculator() {
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <LangCurrencyToggle
+          <CycleChip
             label={t(locale, "lang")}
-            value={locale}
-            options={[
-              { value: "pl", label: "PL" },
-              { value: "en", label: "EN" },
-            ]}
-            onChange={(next) => patch({ locale: next as Locale })}
+            value={locale === "pl" ? "PL" : "EN"}
+            onClick={() =>
+              patch({ locale: locale === "pl" ? "en" : "pl" })
+            }
           />
-          <LangCurrencyToggle
+          <CycleChip
             label={t(locale, "currency")}
-            value={currency}
-            options={[
-              { value: "PLN", label: "PLN zł" },
-              { value: "USD", label: "USD $" },
-            ]}
-            onChange={(next) => patch({ currency: next as Currency })}
+            value={currency === "PLN" ? "PLN zł" : "USD $"}
+            onClick={() =>
+              patch({ currency: currency === "PLN" ? "USD" : "PLN" })
+            }
           />
         </div>
 
@@ -410,74 +405,82 @@ export function WeldingCalculator() {
             ) : null}
           </div>
 
-          <div className="no-print">
-            <PriceBooksForm
-              locale={locale}
-              value={inputs.prices}
-              onApply={(prices) => patch({ prices })}
-            />
-          </div>
+          {/* Order / structure first (shop). Onsite: rates first. */}
+          {onsite ? (
+            <>
+              <div className="no-print">
+                <PriceBooksForm
+                  locale={locale}
+                  value={inputs.prices}
+                  onApply={(prices) => patch({ prices })}
+                />
+              </div>
+              <div className="no-print">
+                <PriceForm
+                  locale={locale}
+                  currency={currency}
+                  value={inputs.prices}
+                  onChange={(prices) => patch({ prices })}
+                />
+              </div>
+              <div className="no-print">
+                <FactorsForm
+                  locale={locale}
+                  value={inputs.factors}
+                  onChange={(factors) => patch({ factors })}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="no-print">
+                <PresetSelector
+                  value={inputs.preset}
+                  locale={locale}
+                  onChange={(preset: PresetId) => patch({ preset })}
+                />
+              </div>
 
-          <div className="no-print">
-            <PriceForm
-              locale={locale}
-              currency={currency}
-              value={inputs.prices}
-              onChange={(prices) => patch({ prices })}
-            />
-          </div>
+              {inputs.preset === "pipe" && (
+                <div className="no-print">
+                  <PipeTemplatesForm
+                    locale={locale}
+                    onApply={(pipe) => patch({ pipe, preset: "pipe" })}
+                  />
+                </div>
+              )}
 
-          <div className="no-print">
-            <FactorsForm
-              locale={locale}
-              value={inputs.factors}
-              onChange={(factors) => patch({ factors })}
-            />
-          </div>
+              <div className="no-print">
+                <DimensionForm
+                  preset={inputs.preset}
+                  locale={locale}
+                  metalType={inputs.metalType}
+                  door={inputs.door}
+                  gate={inputs.gate}
+                  canopy={inputs.canopy}
+                  free={inputs.free}
+                  pipe={inputs.pipe}
+                  onChange={patch}
+                />
+              </div>
 
-          {!onsite && (
-            <div className="no-print">
-              <PresetSelector
-                value={inputs.preset}
-                locale={locale}
-                onChange={(preset: PresetId) => patch({ preset })}
-              />
-            </div>
-          )}
+              <div className="no-print">
+                <WeldingForm
+                  locale={locale}
+                  value={inputs.welding}
+                  onChange={(welding) => patch({ welding })}
+                />
+              </div>
 
-          {!onsite && inputs.preset === "pipe" && (
-            <div className="no-print">
-              <PipeTemplatesForm
-                locale={locale}
-                onApply={(pipe) => patch({ pipe, preset: "pipe" })}
-              />
-            </div>
-          )}
-
-          {!onsite && (
-            <div className="no-print">
-              <DimensionForm
-                preset={inputs.preset}
-                locale={locale}
-                metalType={inputs.metalType}
-                door={inputs.door}
-                gate={inputs.gate}
-                canopy={inputs.canopy}
-                free={inputs.free}
-                pipe={inputs.pipe}
-                onChange={patch}
-              />
-            </div>
-          )}
-
-          {!onsite && (
-            <div className="no-print">
-              <WeldingForm
-                locale={locale}
-                value={inputs.welding}
-                onChange={(welding) => patch({ welding })}
-              />
-            </div>
+              <div className="no-print">
+                <ToolingForm
+                  locale={locale}
+                  currency={currency}
+                  value={inputs.tooling}
+                  onChange={(tooling) => patch({ tooling })}
+                />
+              </div>
+            </>
           )}
 
           <div className="no-print">
@@ -492,14 +495,30 @@ export function WeldingCalculator() {
           </div>
 
           {!onsite && (
-            <div className="no-print">
-              <ToolingForm
-                locale={locale}
-                currency={currency}
-                value={inputs.tooling}
-                onChange={(tooling) => patch({ tooling })}
-              />
-            </div>
+            <>
+              <div className="no-print">
+                <PriceBooksForm
+                  locale={locale}
+                  value={inputs.prices}
+                  onApply={(prices) => patch({ prices })}
+                />
+              </div>
+              <div className="no-print">
+                <PriceForm
+                  locale={locale}
+                  currency={currency}
+                  value={inputs.prices}
+                  onChange={(prices) => patch({ prices })}
+                />
+              </div>
+              <div className="no-print">
+                <FactorsForm
+                  locale={locale}
+                  value={inputs.factors}
+                  onChange={(factors) => patch({ factors })}
+                />
+              </div>
+            </>
           )}
 
           <div className="print-area">
@@ -535,39 +554,26 @@ export function WeldingCalculator() {
   );
 }
 
-function LangCurrencyToggle<T extends string>({
+function CycleChip({
   label,
   value,
-  options,
-  onChange,
+  onClick,
 }: {
   label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (value: T) => void;
+  value: string;
+  onClick: () => void;
 }) {
   return (
     <div>
       <div className="mb-1.5 text-xs font-medium text-slate-400">{label}</div>
-      <div className="grid grid-cols-2 gap-1.5">
-        {options.map((opt) => {
-          const active = opt.value === value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange(opt.value)}
-              className={`rounded-xl border p-2.5 text-sm font-semibold transition ${
-                active
-                  ? "border-amber-500 bg-amber-500/20 text-amber-300"
-                  : "border-slate-700 bg-slate-900 text-slate-300"
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full rounded-xl border border-amber-500/50 bg-amber-500/15 p-2.5 text-sm font-semibold text-amber-200 transition active:scale-[0.98]"
+        aria-label={`${label}: ${value}`}
+      >
+        {value}
+      </button>
     </div>
   );
 }
