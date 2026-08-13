@@ -108,6 +108,17 @@ export function sanitizePublicProfile(raw: unknown): PublicClientProfile {
   };
 }
 
+/** Prefer shop billing for client links (onsite forces hour live). */
+export function pricesForClientShare(prices: PriceParams): PriceParams {
+  if (prices.jobMode !== "onsite") return prices;
+  return {
+    ...prices,
+    jobMode: "full",
+    laborMode: prices.shopLaborMode,
+    useManualHours: false,
+  };
+}
+
 /** Build public profile rates from welder's current price book */
 export function profileFromPrices(
   prices: PriceParams,
@@ -115,19 +126,20 @@ export function profileFromPrices(
   locale: Locale,
   currency: Currency,
 ): PublicClientProfile {
+  const src = pricesForClientShare(prices);
   return sanitizePublicProfile({
     ...DEFAULT_PUBLIC_PROFILE,
     ...contacts,
-    hourPrice: prices.laborHourPrice,
-    profilePricePerMMild: prices.profilePricePerMMild,
-    profilePricePerMStainless: prices.profilePricePerMStainless,
-    rodPackPrice: prices.rodPackPrice,
-    rodPackKg: prices.rodPackKg,
-    gasRefillPrice: prices.gasRefillPrice,
-    weldPricePerCm: prices.weldPricePerCm,
-    laborMode: prices.laborMode,
-    vatPercent: prices.vatPercent,
-    invoiceEnabled: prices.invoiceEnabled,
+    hourPrice: src.laborHourPrice,
+    profilePricePerMMild: src.profilePricePerMMild,
+    profilePricePerMStainless: src.profilePricePerMStainless,
+    rodPackPrice: src.rodPackPrice,
+    rodPackKg: src.rodPackKg,
+    gasRefillPrice: src.gasRefillPrice,
+    weldPricePerCm: src.weldPricePerCm,
+    laborMode: src.laborMode,
+    vatPercent: src.vatPercent,
+    invoiceEnabled: src.invoiceEnabled,
     locale,
     currency,
   });

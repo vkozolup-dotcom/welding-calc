@@ -99,6 +99,7 @@ export const DEFAULT_INPUTS: CalcInputs = {
     rodPackKg: 5,
     gasRefillPrice: 210,
     laborMode: "per_cm",
+    shopLaborMode: "per_cm",
     laborHourPrice: 100,
     weldPricePerCm: 2,
     manualHours: 4,

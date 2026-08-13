@@ -2,13 +2,14 @@
 
 import { useEffect, useId, useState } from "react";
 import { Bookmark, Cog, X } from "lucide-react";
-import { NumberField } from "@/components/FormFields";
+import { NumberField, Segmented } from "@/components/FormFields";
 import { SectionCard } from "@/components/SectionCard";
 import { DEFAULT_INPUTS } from "@/lib/defaults";
 import { currencySymbol, t } from "@/lib/i18n";
 import { loadPriceBooks, sanitizePrices, savePriceBooks } from "@/lib/storage";
 import type {
   Currency,
+  LaborMode,
   Locale,
   PriceBookId,
   PriceBookStore,
@@ -35,12 +36,18 @@ export function PriceBooksForm({
   const [editId, setEditId] = useState<PriceBookId | null>(null);
   const [draftHour, setDraftHour] = useState(0);
   const [draftCm, setDraftCm] = useState(0);
+  const [draftLaborMode, setDraftLaborMode] = useState<LaborMode>("per_cm");
   const titleId = useId();
   const sym = currencySymbol(currency);
 
   useEffect(() => {
     setBooks(loadPriceBooks());
   }, []);
+
+  function shopLaborFallback(): LaborMode {
+    if (value.jobMode === "onsite") return value.shopLaborMode;
+    return value.laborMode;
+  }
 
   function bookBase(id: PriceBookId): PriceParams {
     const saved = books[id];
@@ -49,7 +56,8 @@ export function PriceBooksForm({
       ...structuredClone(DEFAULT_INPUTS.prices),
       ...structuredClone(value),
       jobMode: id === "onsite" ? "onsite" : "full",
-      laborMode: id === "onsite" ? "hour" : value.laborMode,
+      laborMode: id === "onsite" ? "hour" : shopLaborFallback(),
+      shopLaborMode: shopLaborFallback(),
       useManualHours: id === "onsite",
     });
   }
@@ -58,18 +66,36 @@ export function PriceBooksForm({
     const base = bookBase(id);
     setDraftHour(base.laborHourPrice);
     setDraftCm(base.weldPricePerCm);
+    setDraftLaborMode(
+      id === "onsite" ? "hour" : base.shopLaborMode || base.laborMode,
+    );
     setEditId(id);
   }
 
   function saveRates() {
     if (!editId) return;
+    const prev = bookBase(editId);
+    const laborMode =
+      editId === "onsite" ? "hour" : draftLaborMode;
     const snapshot = sanitizePrices({
-      ...bookBase(editId),
+      ...prev,
+      // Keep materials in sync with live Ceny when saving shop rates
+      profilePricePerMMild: value.profilePricePerMMild,
+      profilePricePerMStainless: value.profilePricePerMStainless,
+      rodPackPrice: value.rodPackPrice,
+      rodPackKg: value.rodPackKg,
+      gasRefillPrice: value.gasRefillPrice,
+      vatPercent: value.vatPercent,
+      invoiceEnabled: value.invoiceEnabled,
+      deliveryEnabled: value.deliveryEnabled,
+      deliveryPrice: value.deliveryPrice,
+      eurRate: value.eurRate,
       laborHourPrice: draftHour,
       weldPricePerCm: draftCm,
       jobMode: editId === "onsite" ? "onsite" : "full",
-      laborMode: editId === "onsite" ? "hour" : value.laborMode,
-      useManualHours: editId === "onsite" ? true : value.useManualHours,
+      laborMode,
+      shopLaborMode: editId === "onsite" ? value.shopLaborMode : laborMode,
+      useManualHours: editId === "onsite",
     });
     const next = { ...books, [editId]: snapshot };
     setBooks(next);
@@ -83,20 +109,41 @@ export function PriceBooksForm({
         ...value,
         laborHourPrice: draftHour,
         weldPricePerCm: draftCm,
+        laborMode,
+        shopLaborMode:
+          editId === "onsite" ? value.shopLaborMode : laborMode,
       });
     }
     setEditId(null);
   }
 
+  /** Apply only mode + labor rates — never wipe live material prices */
   function applyBook(id: PriceBookId) {
+    const base = bookBase(id);
+    const laborMode =
+      id === "onsite" ? "hour" : base.shopLaborMode || base.laborMode;
     const prices = sanitizePrices({
-      ...bookBase(id),
+      ...value,
+      laborHourPrice: base.laborHourPrice,
+      weldPricePerCm: base.weldPricePerCm,
       jobMode: id === "onsite" ? "onsite" : "full",
-      laborMode: id === "onsite" ? "hour" : bookBase(id).laborMode,
-      useManualHours: id === "onsite" ? true : bookBase(id).useManualHours,
+      laborMode,
+      shopLaborMode:
+        id === "onsite"
+          ? value.shopLaborMode || base.shopLaborMode
+          : laborMode,
+      useManualHours: id === "onsite",
+      manualHours: id === "onsite" ? value.manualHours : value.manualHours,
     });
     if (!books[id]) {
-      const next = { ...books, [id]: prices };
+      const seeded = sanitizePrices({
+        ...base,
+        laborHourPrice: prices.laborHourPrice,
+        weldPricePerCm: prices.weldPricePerCm,
+        laborMode,
+        shopLaborMode: prices.shopLaborMode,
+      });
+      const next = { ...books, [id]: seeded };
       setBooks(next);
       savePriceBooks(next);
     }
@@ -205,6 +252,17 @@ export function PriceBooksForm({
               </button>
             </div>
             <div className="space-y-3">
+              {editId === "shop" ? (
+                <Segmented<LaborMode>
+                  label={t(locale, "laborPayMode")}
+                  value={draftLaborMode}
+                  onChange={setDraftLaborMode}
+                  options={[
+                    { value: "hour", label: t(locale, "laborModeHour") },
+                    { value: "per_cm", label: t(locale, "laborModeCm") },
+                  ]}
+                />
+              ) : null}
               <NumberField
                 label={t(locale, "laborHour")}
                 suffix={`${sym}${t(locale, "perHour")}`}

@@ -120,6 +120,11 @@ export interface PriceParams {
   rodPackKg: number;
   gasRefillPrice: number;
   laborMode: LaborMode;
+  /**
+   * Shop (full) labor billing mode remembered while onsite forces hour.
+   * Restored when returning to full / used for client share links.
+   */
+  shopLaborMode: LaborMode;
   laborHourPrice: number;
   weldPricePerCm: number;
   /** Manual hours (used in onsite mode, or when > 0 overrides estimate) */

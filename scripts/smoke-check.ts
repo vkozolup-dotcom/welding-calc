@@ -2,10 +2,14 @@
  * Smoke checks for welding calc engine (run with: npx tsx scripts/smoke-check.ts)
  */
 import { calculateAll, calcPipe, pipeJointCount } from "../src/lib/calculations";
+import {
+  buildClientCalcInputs,
+  DEFAULT_PUBLIC_PROFILE,
+} from "../src/lib/clientProfile";
 import { DEFAULT_INPUTS, createPipeSegment } from "../src/lib/defaults";
 import { PIPE_TEMPLATES } from "../src/lib/pipeTemplates";
 import { calcTodayStats, sortJobs } from "../src/lib/jobsUtils";
-import { mergeInputs } from "../src/lib/storage";
+import { mergeInputs, sanitizePrices } from "../src/lib/storage";
 import type { SavedJob } from "../src/lib/types";
 
 let failed = 0;
@@ -150,6 +154,89 @@ function assert(cond: boolean, msg: string) {
   assert(sorted[0].id === "c", "pinned first");
   const today = calcTodayStats(jobs);
   assert(today.jobs === 2, "today jobs = 2 (b+c)");
+}
+
+// 8) Mild vs stainless metal rate
+{
+  const mild = structuredClone(DEFAULT_INPUTS);
+  mild.metalType = "mild";
+  mild.prices.profilePricePerMMild = 10;
+  mild.prices.profilePricePerMStainless = 50;
+  mild.prices.laborMode = "per_cm";
+  const stainless = structuredClone(mild);
+  stainless.metalType = "stainless";
+  const a = calculateAll(mild);
+  const b = calculateAll(stainless);
+  assert(b.costs.metalCost > a.costs.metalCost, "stainless metal cost > mild");
+  assert(
+    Math.abs(a.costs.metalCost - a.materials.profileLengthWithWasteM * 10) < 1e-6,
+    "mild uses mild rate",
+  );
+  assert(
+    Math.abs(b.costs.metalCost - b.materials.profileLengthWithWasteM * 50) < 1e-6,
+    "stainless uses stainless rate",
+  );
+}
+
+// 9) Onsite zeros materials; per_cm shop bills seam
+{
+  const onsite = structuredClone(DEFAULT_INPUTS);
+  onsite.prices.jobMode = "onsite";
+  onsite.prices.laborMode = "hour";
+  onsite.prices.useManualHours = true;
+  onsite.prices.manualHours = 2;
+  onsite.prices.laborHourPrice = 100;
+  onsite.factors.prepWorkPercent = 0;
+  const r = calculateAll(onsite);
+  assert(r.costs.metalCost === 0, "onsite metal = 0");
+  assert(r.costs.fillerCost === 0, "onsite filler = 0");
+  assert(r.costs.gasCost === 0, "onsite gas = 0");
+  assert(Math.abs(r.costs.laborCost - 200) < 1e-9, "onsite labor = 200");
+
+  const cm = structuredClone(DEFAULT_INPUTS);
+  cm.prices.jobMode = "full";
+  cm.prices.laborMode = "per_cm";
+  cm.prices.weldPricePerCm = 3;
+  cm.prices.profilePricePerMMild = 0;
+  cm.prices.rodPackPrice = 0;
+  cm.prices.gasRefillPrice = 0;
+  const c = calculateAll(cm);
+  assert(
+    Math.abs(c.costs.weldSeamCost - c.materials.weldLengthCm * 3) < 1e-6,
+    "per_cm seam cost",
+  );
+  assert(c.costs.laborCost === 0, "per_cm laborCost = 0");
+}
+
+// 10) sanitizePrices: legacy profilePricePerM + rodPackKg clamp + shopLaborMode
+{
+  const s = sanitizePrices({
+    profilePricePerM: 22,
+    rodPackKg: 0,
+    jobMode: "onsite",
+    laborMode: "hour",
+  } as never);
+  assert(s.profilePricePerMMild === 22, "legacy price -> mild");
+  assert(s.profilePricePerMStainless === 48, "stainless default kept");
+  assert(s.rodPackKg >= 0.01, "rodPackKg clamped > 0");
+  assert(s.shopLaborMode === "per_cm", "onsite keeps shopLaborMode default");
+}
+
+// 11) Client inputs keep per_cm when without materials
+{
+  const profile = {
+    ...DEFAULT_PUBLIC_PROFILE,
+    laborMode: "per_cm" as const,
+    weldPricePerCm: 2.5,
+    hourPrice: 90,
+  };
+  const inputs = buildClientCalcInputs(profile, {}, false);
+  assert(inputs.prices.jobMode === "full", "client labor-only stays full");
+  assert(inputs.prices.laborMode === "per_cm", "client keeps per_cm");
+  assert(inputs.prices.profilePricePerMMild === 0, "client zeros mild");
+  assert(inputs.prices.profilePricePerMStainless === 0, "client zeros stainless");
+  const r = calculateAll(inputs);
+  assert(r.costs.weldSeamCost > 0, "client per_cm still bills seam");
 }
 
 if (failed > 0) {

@@ -9,7 +9,11 @@ import {
   type PublicClientProfile,
 } from "@/lib/clientProfile";
 import { currencySymbol, t } from "@/lib/i18n";
-import { loadPublicProfile, savePublicProfile } from "@/lib/storage";
+import {
+  loadPriceBooks,
+  loadPublicProfile,
+  savePublicProfile,
+} from "@/lib/storage";
 import { shareOrSendText } from "@/lib/share";
 import type { Currency, Locale, PriceParams } from "@/lib/types";
 
@@ -31,14 +35,14 @@ export function ClientLinkForm({
 
   useEffect(() => {
     const saved = loadPublicProfile();
-    setProfile(profileFromPrices(prices, saved, locale, currency));
+    setProfile(profileFromPrices(sharePrices(), saved, locale, currency));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep public rates aligned with live Prices block (contacts stay as edited)
+  // Keep public rates aligned with shop Prices (contacts stay as edited)
   useEffect(() => {
     setProfile((prev) => {
-      const next = profileFromPrices(prices, prev, locale, currency);
+      const next = profileFromPrices(sharePrices(), prev, locale, currency);
       savePublicProfile(next);
       return next;
     });
@@ -52,9 +56,32 @@ export function ClientLinkForm({
     });
   }
 
+  /** Shop rates for the public link — never onsite-forced hour billing */
+  function sharePrices(): PriceParams {
+    if (prices.jobMode !== "onsite") return prices;
+    const shop = loadPriceBooks().shop;
+    if (!shop) {
+      return {
+        ...prices,
+        jobMode: "full",
+        laborMode: prices.shopLaborMode,
+        useManualHours: false,
+      };
+    }
+    return {
+      ...prices,
+      jobMode: "full",
+      laborMode: shop.shopLaborMode || shop.laborMode,
+      shopLaborMode: shop.shopLaborMode || shop.laborMode,
+      laborHourPrice: shop.laborHourPrice,
+      weldPricePerCm: shop.weldPricePerCm,
+      useManualHours: false,
+    };
+  }
+
   /** Always embed the latest Prices + contacts into the share URL */
   function liveProfile(): PublicClientProfile {
-    return profileFromPrices(prices, profile, locale, currency);
+    return profileFromPrices(sharePrices(), profile, locale, currency);
   }
 
   async function copyLink() {

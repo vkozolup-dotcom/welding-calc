@@ -57,9 +57,19 @@ export function sanitizePrices(raw: Record<string, unknown> | PriceParams): Pric
       asFiniteNumber(p.profilePricePerMStainless, base.profilePricePerMStainless),
     ),
     rodPackPrice: Math.max(0, asFiniteNumber(p.rodPackPrice, base.rodPackPrice)),
-    rodPackKg: Math.max(0, asFiniteNumber(p.rodPackKg, base.rodPackKg)),
+    rodPackKg: Math.max(0.01, asFiniteNumber(p.rodPackKg, base.rodPackKg)),
     gasRefillPrice: Math.max(0, asFiniteNumber(p.gasRefillPrice, base.gasRefillPrice)),
     laborMode: p.laborMode === "hour" ? "hour" : "per_cm",
+    shopLaborMode:
+      p.shopLaborMode === "hour"
+        ? "hour"
+        : p.shopLaborMode === "per_cm"
+          ? "per_cm"
+          : p.jobMode === "onsite"
+            ? base.shopLaborMode
+            : p.laborMode === "hour"
+              ? "hour"
+              : "per_cm",
     laborHourPrice: Math.max(0, asFiniteNumber(p.laborHourPrice, base.laborHourPrice)),
     weldPricePerCm: Math.max(0, asFiniteNumber(p.weldPricePerCm, base.weldPricePerCm)),
     manualHours: Math.max(0, asFiniteNumber(p.manualHours, base.manualHours)),

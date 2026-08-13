@@ -39,15 +39,27 @@ export function PriceForm({
         <Segmented<JobMode>
           label={t(locale, "jobModeTitle")}
           value={value.jobMode}
-          onChange={(jobMode) =>
+          onChange={(jobMode) => {
+            if (jobMode === "onsite") {
+              onChange({
+                ...value,
+                jobMode,
+                shopLaborMode:
+                  value.jobMode === "full"
+                    ? value.laborMode
+                    : value.shopLaborMode,
+                laborMode: "hour",
+                useManualHours: true,
+              });
+              return;
+            }
             onChange({
               ...value,
               jobMode,
-              laborMode: jobMode === "onsite" ? "hour" : value.laborMode,
-              // Onsite always manual hours; leaving onsite returns to auto estimate
-              useManualHours: jobMode === "onsite",
-            })
-          }
+              laborMode: value.shopLaborMode,
+              useManualHours: false,
+            });
+          }}
           options={[
             { value: "full", label: t(locale, "jobModeFull") },
             { value: "onsite", label: t(locale, "jobModeOnsite") },
@@ -112,6 +124,7 @@ export function PriceForm({
                 onChange({
                   ...value,
                   laborMode,
+                  shopLaborMode: laborMode,
                   // Switching to per_cm always uses seam length; hour starts on auto estimate
                   useManualHours:
                     laborMode === "hour" ? value.useManualHours : false,
