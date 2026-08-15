@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type HTMLAttributes } from "react";
+import { useEffect, useMemo, useState, type HTMLAttributes } from "react";
 import { Check, Copy, ExternalLink, Link2 } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
 import {
@@ -23,70 +23,71 @@ interface ClientLinkFormProps {
   prices: PriceParams;
 }
 
+/** Shop rates for the public link — never onsite-forced hour billing */
+function sharePricesFrom(prices: PriceParams): PriceParams {
+  if (prices.jobMode !== "onsite") return prices;
+  const shop = loadPriceBooks().shop;
+  if (!shop) {
+    return {
+      ...prices,
+      jobMode: "full",
+      laborMode: prices.shopLaborMode,
+      useManualHours: false,
+    };
+  }
+  return {
+    ...prices,
+    jobMode: "full",
+    laborMode: shop.shopLaborMode || shop.laborMode,
+    shopLaborMode: shop.shopLaborMode || shop.laborMode,
+    laborHourPrice: shop.laborHourPrice,
+    weldPricePerCm: shop.weldPricePerCm,
+    useManualHours: false,
+  };
+}
+
 export function ClientLinkForm({
   locale,
   currency,
   prices,
 }: ClientLinkFormProps) {
-  const [profile, setProfile] = useState<PublicClientProfile>(() =>
+  const [contacts, setContacts] = useState<PublicClientProfile>(() =>
     loadPublicProfile(),
   );
   const [flash, setFlash] = useState("");
 
-  useEffect(() => {
-    const saved = loadPublicProfile();
-    setProfile(profileFromPrices(sharePrices(), saved, locale, currency));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const profile = useMemo(
+    () =>
+      profileFromPrices(sharePricesFrom(prices), contacts, locale, currency),
+    [prices, contacts, locale, currency],
+  );
 
-  // Keep public rates aligned with shop Prices (contacts stay as edited)
   useEffect(() => {
-    setProfile((prev) => {
-      const next = profileFromPrices(sharePrices(), prev, locale, currency);
-      savePublicProfile(next);
-      return next;
-    });
-  }, [prices, locale, currency]);
+    savePublicProfile(profile);
+  }, [profile]);
 
   function update(partial: Partial<PublicClientProfile>) {
-    setProfile((prev) => {
+    setContacts((prev) => {
       const next = { ...prev, ...partial, v: 2 as const, locale, currency };
-      savePublicProfile(next);
+      savePublicProfile(
+        profileFromPrices(sharePricesFrom(prices), next, locale, currency),
+      );
       return next;
     });
   }
 
-  /** Shop rates for the public link — never onsite-forced hour billing */
-  function sharePrices(): PriceParams {
-    if (prices.jobMode !== "onsite") return prices;
-    const shop = loadPriceBooks().shop;
-    if (!shop) {
-      return {
-        ...prices,
-        jobMode: "full",
-        laborMode: prices.shopLaborMode,
-        useManualHours: false,
-      };
-    }
-    return {
-      ...prices,
-      jobMode: "full",
-      laborMode: shop.shopLaborMode || shop.laborMode,
-      shopLaborMode: shop.shopLaborMode || shop.laborMode,
-      laborHourPrice: shop.laborHourPrice,
-      weldPricePerCm: shop.weldPricePerCm,
-      useManualHours: false,
-    };
-  }
-
-  /** Always embed the latest Prices + contacts into the share URL */
   function liveProfile(): PublicClientProfile {
-    return profileFromPrices(sharePrices(), profile, locale, currency);
+    return profileFromPrices(
+      sharePricesFrom(prices),
+      contacts,
+      locale,
+      currency,
+    );
   }
 
   async function copyLink() {
     const next = liveProfile();
-    setProfile(next);
+    setContacts(next);
     savePublicProfile(next);
     const url = buildClientShareUrl(window.location.origin, next);
     const outcome = await shareOrSendText(url, t(locale, "clientLinkTitle"));
@@ -101,7 +102,7 @@ export function ClientLinkForm({
 
   function openLink() {
     const next = liveProfile();
-    setProfile(next);
+    setContacts(next);
     savePublicProfile(next);
     window.open(
       buildClientShareUrl(window.location.origin, next),
@@ -124,39 +125,39 @@ export function ClientLinkForm({
       <div className="space-y-3">
         <TextField
           label={t(locale, "clientLinkName")}
-          value={profile.displayName}
+          value={contacts.displayName}
           onChange={(displayName) => update({ displayName })}
           placeholder="TIG Pro / Jan K."
         />
         <TextField
           label={t(locale, "clientLinkPhone")}
-          value={profile.phone}
+          value={contacts.phone}
           onChange={(phone) => update({ phone })}
           placeholder="+48 …"
           inputMode="tel"
         />
         <TextField
           label={t(locale, "clientLinkEmail")}
-          value={profile.email}
+          value={contacts.email}
           onChange={(email) => update({ email })}
           placeholder="mail@…"
           inputMode="email"
         />
         <TextField
           label={t(locale, "clientLinkWhatsApp")}
-          value={profile.whatsapp}
+          value={contacts.whatsapp}
           onChange={(whatsapp) => update({ whatsapp })}
           placeholder="+48 …"
         />
         <TextField
           label={t(locale, "clientLinkFacebook")}
-          value={profile.facebook}
+          value={contacts.facebook}
           onChange={(facebook) => update({ facebook })}
           placeholder="https://facebook.com/…"
         />
         <TextField
           label={t(locale, "clientLinkInstagram")}
-          value={profile.instagram}
+          value={contacts.instagram}
           onChange={(instagram) => update({ instagram })}
           placeholder="@nick"
         />
@@ -169,16 +170,16 @@ export function ClientLinkForm({
             <div className="flex justify-between gap-2">
               <span className="text-slate-500">{t(locale, "laborPayMode")}</span>
               <span>
-                {prices.laborMode === "per_cm"
+                {profile.laborMode === "per_cm"
                   ? t(locale, "laborModeCm")
                   : t(locale, "laborModeHour")}
               </span>
             </div>
-            {prices.laborMode === "per_cm" ? (
+            {profile.laborMode === "per_cm" ? (
               <div className="flex justify-between gap-2">
                 <span className="text-slate-500">{t(locale, "weldPerCm")}</span>
                 <span>
-                  {prices.weldPricePerCm} {sym}
+                  {profile.weldPricePerCm} {sym}
                   {t(locale, "perCm")}
                 </span>
               </div>
@@ -188,7 +189,7 @@ export function ClientLinkForm({
                   {t(locale, "clientLinkHourPrice")}
                 </span>
                 <span>
-                  {prices.laborHourPrice} {sym}
+                  {profile.hourPrice} {sym}
                   {t(locale, "perHour")}
                 </span>
               </div>
@@ -198,7 +199,7 @@ export function ClientLinkForm({
                 {t(locale, "priceProfileMild")}
               </span>
               <span>
-                {prices.profilePricePerMMild} {sym}
+                {profile.profilePricePerMMild} {sym}
                 {t(locale, "perMeter")}
               </span>
             </div>
@@ -207,20 +208,20 @@ export function ClientLinkForm({
                 {t(locale, "priceProfileStainless")}
               </span>
               <span>
-                {prices.profilePricePerMStainless} {sym}
+                {profile.profilePricePerMStainless} {sym}
                 {t(locale, "perMeter")}
               </span>
             </div>
             <div className="flex justify-between gap-2">
               <span className="text-slate-500">{t(locale, "rodPack")}</span>
               <span>
-                {prices.rodPackPrice} {sym}
+                {profile.rodPackPrice} {sym}
               </span>
             </div>
             <div className="flex justify-between gap-2">
               <span className="text-slate-500">{t(locale, "gasRefill")}</span>
               <span>
-                {prices.gasRefillPrice} {sym}
+                {profile.gasRefillPrice} {sym}
               </span>
             </div>
           </div>

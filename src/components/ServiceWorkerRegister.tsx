@@ -11,11 +11,11 @@ const BROKEN_CACHE_FIX = "welding-calc-sw-fix-v3";
  */
 export function ServiceWorkerRegister() {
   const [updateReady, setUpdateReady] = useState(false);
-  const [lang, setLang] = useState("pl");
-
-  useEffect(() => {
-    setLang(document.documentElement.lang || "pl");
-  }, []);
+  const [lang] = useState(() =>
+    typeof document !== "undefined"
+      ? document.documentElement.lang || "pl"
+      : "pl",
+  );
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) {

@@ -23,6 +23,7 @@ import {
   downloadTextFile,
   exportFullBackupJson,
   sortJobs,
+  stampNow,
 } from "@/lib/jobsUtils";
 import {
   PIPE_MEDIA_KEY,
@@ -61,14 +62,14 @@ export function JobsPanel({
   onMutate,
   onJobNoteChange,
 }: JobsPanelProps) {
-  const [jobs, setJobs] = useState<SavedJob[]>([]);
+  const [jobs, setJobs] = useState<SavedJob[]>(() => loadJobs());
   const [query, setQuery] = useState("");
   const [importFlash, setImportFlash] = useState(false);
   const [errorFlash, setErrorFlash] = useState("");
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setJobs(loadJobs());
+    queueMicrotask(() => setJobs(loadJobs()));
   }, [refreshKey]);
 
   function flashError(key: "storageFull" | "importFailed" | "photoFailed") {
@@ -100,7 +101,7 @@ export function JobsPanel({
           ? {
               ...j,
               ...patch,
-              updatedAt: touchTime ? Date.now() : j.updatedAt,
+              updatedAt: touchTime ? stampNow() : j.updatedAt,
             }
           : j,
       ),
@@ -126,7 +127,7 @@ export function JobsPanel({
       ...structuredClone(job),
       id: createJobId(),
       name: `${job.name} (${t(locale, "jobCopySuffix")})`,
-      updatedAt: Date.now(),
+      updatedAt: stampNow(),
       pinned: false,
     };
     persist([copy, ...current].slice(0, JOB_SOFT_CAP));
@@ -165,7 +166,7 @@ export function JobsPanel({
           name:
             typeof r.name === "string" && r.name.trim() ? r.name : "Job",
           updatedAt:
-            typeof r.updatedAt === "number" ? r.updatedAt : Date.now(),
+            typeof r.updatedAt === "number" ? r.updatedAt : stampNow(),
           inputs: mergeInputs(r.inputs),
           note: typeof r.note === "string" ? r.note.slice(0, 4000) : "",
           photoDataUrl: isSafePhotoDataUrl(r.photoDataUrl)
@@ -333,10 +334,6 @@ function JobCard({
     inputs.preset === "pipe"
       ? t(locale, PIPE_MEDIA_KEY[inputs.pipe.media])
       : null;
-
-  useEffect(() => {
-    setNoteDraft(job.note);
-  }, [job.id, job.note]);
 
   useEffect(() => {
     return () => {

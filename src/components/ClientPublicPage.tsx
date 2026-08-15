@@ -39,15 +39,17 @@ export function ClientPublicPage() {
       window.location.hash,
       window.location.search,
     );
-    setProfile(loaded);
-    if (loaded) {
-      setDraft((prev) => ({
-        ...prev,
-        locale: loaded.locale,
-        currency: loaded.currency,
-      }));
-    }
-    setReady(true);
+    queueMicrotask(() => {
+      setProfile(loaded);
+      if (loaded) {
+        setDraft((prev) => ({
+          ...prev,
+          locale: loaded.locale,
+          currency: loaded.currency,
+        }));
+      }
+      setReady(true);
+    });
 
     const onHash = () => {
       setProfile(

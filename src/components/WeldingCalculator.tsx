@@ -18,7 +18,7 @@ import { ToolingForm } from "@/components/ToolingForm";
 import { WeldingForm } from "@/components/WeldingForm";
 import { calculateAll } from "@/lib/calculations";
 import { DEFAULT_INPUTS } from "@/lib/defaults";
-import { JOB_SOFT_CAP } from "@/lib/jobsUtils";
+import { JOB_SOFT_CAP, stampNow } from "@/lib/jobsUtils";
 import {
   PRESET_TITLE_KEY,
   formatMoney,
@@ -59,45 +59,49 @@ export function WeldingCalculator() {
 
   useEffect(() => {
     const saved = loadSettings();
-    if (saved) {
-      setInputs(saved.inputs);
-      setTab(saved.tab);
-      const jobs = loadJobs();
-      setTodayJobs(jobs);
-      if (saved.activeJobId && jobs.some((j) => j.id === saved.activeJobId)) {
-        const job = jobs.find((j) => j.id === saved.activeJobId)!;
-        setActiveJobId(job.id);
-        setActiveJobName(job.name);
-        setJobName(job.name);
-        setSavedFingerprint(
-          jobFingerprint(
-            {
-              ...structuredClone(job.inputs),
-              jobNote: job.note || job.inputs.jobNote || "",
-            },
-            job.name,
-          ),
-        );
+    queueMicrotask(() => {
+      if (saved) {
+        setInputs(saved.inputs);
+        setTab(saved.tab);
+        const jobs = loadJobs();
+        setTodayJobs(jobs);
+        if (saved.activeJobId && jobs.some((j) => j.id === saved.activeJobId)) {
+          const job = jobs.find((j) => j.id === saved.activeJobId)!;
+          setActiveJobId(job.id);
+          setActiveJobName(job.name);
+          setJobName(job.name);
+          setSavedFingerprint(
+            jobFingerprint(
+              {
+                ...structuredClone(job.inputs),
+                jobNote: job.note || job.inputs.jobNote || "",
+              },
+              job.name,
+            ),
+          );
+        } else {
+          setActiveJobId(null);
+          setActiveJobName(null);
+        }
       } else {
-        setActiveJobId(null);
-        setActiveJobName(null);
+        setTodayJobs(loadJobs());
       }
-    } else {
-      setTodayJobs(loadJobs());
-    }
-    setHydrated(true);
+      setHydrated(true);
+    });
   }, []);
 
   useEffect(() => {
-    setTodayJobs(loadJobs());
+    queueMicrotask(() => setTodayJobs(loadJobs()));
   }, [jobsRefresh]);
 
   useEffect(() => {
     if (!hydrated) return;
     const ok = saveSettings(inputs, tab, activeJobId);
     if (!ok) {
-      setSaveError(t(inputs.locale, "settingsSaveFailed"));
-      setTimeout(() => setSaveError(""), 2500);
+      queueMicrotask(() => {
+        setSaveError(t(inputs.locale, "settingsSaveFailed"));
+        setTimeout(() => setSaveError(""), 2500);
+      });
     }
     document.documentElement.lang = inputs.locale;
   }, [inputs, tab, activeJobId, hydrated]);
@@ -139,7 +143,7 @@ export function WeldingCalculator() {
         const job: SavedJob = {
           id: createJobId(),
           name: label,
-          updatedAt: Date.now(),
+          updatedAt: stampNow(),
           inputs: payloadInputs,
           note: inputs.jobNote,
           photoDataUrl: null,
@@ -165,7 +169,7 @@ export function WeldingCalculator() {
             ? {
                 ...j,
                 name: label,
-                updatedAt: Date.now(),
+                updatedAt: stampNow(),
                 inputs: nextInputs,
                 note,
               }
@@ -182,7 +186,7 @@ export function WeldingCalculator() {
       const job: SavedJob = {
         id: createJobId(),
         name: label,
-        updatedAt: Date.now(),
+        updatedAt: stampNow(),
         inputs: payloadInputs,
         note: inputs.jobNote,
         photoDataUrl: null,
@@ -592,22 +596,22 @@ function InstallHint({ locale }: { locale: Locale }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
     null,
   );
-  const [iosHint, setIosHint] = useState(false);
-  const [hidden, setHidden] = useState(false);
-
-  useEffect(() => {
+  const [iosHint] = useState(() => {
+    if (typeof window === "undefined") return false;
     const ua = window.navigator.userAgent.toLowerCase();
     const isIos =
       /iphone|ipad|ipod/.test(ua) ||
       (ua.includes("mac") && "ontouchend" in document);
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
-      // iOS Safari
       Boolean(
         (window.navigator as Navigator & { standalone?: boolean }).standalone,
       );
-    if (isIos && !standalone) setIosHint(true);
+    return isIos && !standalone;
+  });
+  const [hidden, setHidden] = useState(false);
 
+  useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);

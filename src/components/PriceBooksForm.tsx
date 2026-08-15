@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { Bookmark, Cog, X } from "lucide-react";
 import { NumberField, Segmented } from "@/components/FormFields";
 import { SectionCard } from "@/components/SectionCard";
@@ -29,20 +29,13 @@ export function PriceBooksForm({
   value,
   onApply,
 }: PriceBooksFormProps) {
-  const [books, setBooks] = useState<PriceBookStore>({
-    shop: null,
-    onsite: null,
-  });
+  const [books, setBooks] = useState<PriceBookStore>(() => loadPriceBooks());
   const [editId, setEditId] = useState<PriceBookId | null>(null);
   const [draftHour, setDraftHour] = useState(0);
   const [draftCm, setDraftCm] = useState(0);
   const [draftLaborMode, setDraftLaborMode] = useState<LaborMode>("per_cm");
   const titleId = useId();
   const sym = currencySymbol(currency);
-
-  useEffect(() => {
-    setBooks(loadPriceBooks());
-  }, []);
 
   function shopLaborFallback(): LaborMode {
     if (value.jobMode === "onsite") return value.shopLaborMode;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
 
 interface NumberFieldProps {
@@ -45,17 +45,14 @@ export function NumberField({
     Number.isFinite(value) ? String(value) : "",
   );
   const [focused, setFocused] = useState(false);
-
-  useEffect(() => {
-    if (!focused) {
-      setDraft(Number.isFinite(value) ? String(value) : "");
-    }
-  }, [value, focused]);
+  const shown = focused
+    ? draft
+    : Number.isFinite(value)
+      ? String(value)
+      : "";
 
   function bump(dir: 1 | -1) {
-    const base = focused
-      ? parseFloat(draft.replace(",", "."))
-      : value;
+    const base = focused ? parseFloat(draft.replace(",", ".")) : value;
     const from = Number.isFinite(base) ? base : value;
     const next = clamp(roundToStep(from + dir * step, step), min, max);
     setDraft(String(next));
@@ -87,8 +84,9 @@ export function NumberField({
           enterKeyHint="done"
           autoComplete="off"
           className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 p-3 text-center text-base text-slate-50 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30"
-          value={draft}
+          value={shown}
           onFocus={() => {
+            setDraft(Number.isFinite(value) ? String(value) : "");
             setFocused(true);
             requestAnimationFrame(() => {
               const el = document.activeElement;

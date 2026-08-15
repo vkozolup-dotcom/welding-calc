@@ -5,6 +5,11 @@ import { formatNum, t } from "./i18n";
 
 export const JOB_SOFT_CAP = 40;
 
+/** Wall-clock ms — keep out of React components (eslint purity). */
+export function stampNow(): number {
+  return Date.now();
+}
+
 function startOfToday(): number {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
